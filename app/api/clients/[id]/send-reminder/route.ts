@@ -4,6 +4,7 @@ import { isMonthRelevant, missingFormTypes, israelToday } from '@/lib/checklist'
 import { fetchClientFormTypeMap } from '@/lib/client-form-types'
 import { renderClientReminderEmail } from '@/lib/client-reminder-email'
 import { sendReminderEmail } from '@/lib/email'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // Manual "שלח מייל תזכורת" button on the client card — sends the SAME template as the
 // automatic staged reminders, right now, regardless of stage/day thresholds. Recorded with
@@ -40,7 +41,11 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const { subject, body } = renderClientReminderEmail(template, client.name, missing.map((f: any) => f.name))
   const result = await sendReminderEmail({ to: client.email, subject, body })
 
-  const { data: event, error } = await ctx.supabase
+  // reminder_events has no INSERT policy for regular users (only the service-role cron writes
+  // there, by design, so the automated log can't be tampered with) — this manual-send path is
+  // a second trusted writer, so it needs the admin client for just this one write.
+  const admin = createAdminClient()
+  const { data: event, error } = await admin
     .from('reminder_events')
     .insert({
       client_id: client.id,
