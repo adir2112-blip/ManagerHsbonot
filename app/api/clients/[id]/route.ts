@@ -61,3 +61,15 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ client: data })
 }
+
+// Permanent delete (explicit user request) — checklist_items, client_form_types, and
+// reminder_events all cascade-delete with the client, wiping its full report history.
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  const guard = await requireAuth()
+  if ('error' in guard) return guard.error
+  const { ctx } = guard
+
+  const { error } = await ctx.supabase.from('clients').delete().eq('id', params.id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
+}

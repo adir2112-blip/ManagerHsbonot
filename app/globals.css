@@ -300,6 +300,15 @@ tr.overdue-row:hover td { background: #fee2e2; }
     width: 120px !important;
   }
 
+  /* Login — fixed 390px card overflows narrow phones (e.g. 375px iPhone SE) */
+  .login-card { width: calc(100% - 32px); max-width: 390px; padding: 28px 20px; }
+
+  /* Checklist row (client card): fixed 200px label + note input side-by-side doesn't fit a
+     phone screen — stack the note under the checkbox/label instead. */
+  .checklist-row { flex-wrap: wrap; }
+  .checklist-row .ct-label { flex: 1 1 auto !important; }
+  .checklist-row .ct-note { flex: 1 1 100% !important; margin-top: 6px; }
+
   /* Toast */
   .toast { width: 90%; text-align: center; }
 }

@@ -52,16 +52,16 @@ export default function ChecklistMonth({ clientId, year, month, onChanged }: { c
       {formTypes.map(ft => {
         const item = itemFor(ft.id)
         return (
-          <div key={ft.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 4px', borderBottom: '1px solid var(--border)' }}>
+          <div key={ft.id} className="checklist-row" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 4px', borderBottom: '1px solid var(--border)' }}>
             <input
               type="checkbox"
               checked={!!item?.checked}
               onChange={e => toggle(ft.id, e.target.checked)}
-              style={{ width: 18, height: 18, cursor: 'pointer' }}
+              style={{ width: 18, height: 18, cursor: 'pointer', flexShrink: 0 }}
             />
-            <span style={{ flex: '0 0 200px', fontWeight: 600, fontSize: 13 }}>{ft.name}</span>
+            <span className="ct-label" style={{ flex: '0 0 200px', fontWeight: 600, fontSize: 13 }}>{ft.name}</span>
             <input
-              className="form-input"
+              className="form-input ct-note"
               placeholder="הערה חופשית (אופציונלי)"
               value={noteDrafts[ft.id] ?? item?.note ?? ''}
               onChange={e => setNoteDrafts(d => ({ ...d, [ft.id]: e.target.value }))}

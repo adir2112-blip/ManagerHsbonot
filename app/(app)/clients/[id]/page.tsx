@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
-import { apiGet, apiPatch } from '@/lib/client'
+import { useParams, useRouter } from 'next/navigation'
+import { apiGet, apiPatch, apiDelete } from '@/lib/client'
 import ChecklistMonth from '@/components/ChecklistMonth'
 import ClientFormTypesPanel from '@/components/ClientFormTypesPanel'
 
@@ -25,6 +25,7 @@ function remainingText(remaining: number): string {
 
 export default function ClientDetailPage() {
   const params = useParams<{ id: string }>()
+  const router = useRouter()
   const [client, setClient] = useState<Client | null>(null)
   const [history, setHistory] = useState<HistoryRow[]>([])
   const [today, setToday] = useState<{ year: number; month: number } | null>(null)
@@ -32,6 +33,8 @@ export default function ClientDetailPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [showFormTypes, setShowFormTypes] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [editPhone, setEditPhone] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editCycleStart, setEditCycleStart] = useState('')
@@ -64,6 +67,16 @@ export default function ClientDetailPage() {
     load()
   }
 
+  async function confirmDelete() {
+    setDeleting(true)
+    try {
+      await apiDelete(`/api/clients/${params.id}`)
+      router.push('/clients')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   if (!client) return <div className="td-muted">טוען…</div>
 
   const currentMonthRow = today ? history.find(h => h.year === today.year && h.month === today.month) : undefined
@@ -84,6 +97,7 @@ export default function ClientDetailPage() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-sm" onClick={() => setShowFormTypes(true)}>📋 טפסים ללקוח</button>
           <button className="btn btn-sm" onClick={() => setEditing(e => !e)}>{editing ? 'ביטול' : 'עריכה'}</button>
+          <button className="btn btn-sm btn-danger" onClick={() => setShowDeleteConfirm(true)}>🗑 מחיקת לקוח</button>
         </div>
       </div>
 
@@ -160,6 +174,28 @@ export default function ClientDetailPage() {
 
       {showFormTypes && (
         <ClientFormTypesPanel clientId={client.id} onClose={() => setShowFormTypes(false)} onChanged={load} />
+      )}
+
+      {showDeleteConfirm && (
+        <div className="modal-overlay" onClick={() => !deleting && setShowDeleteConfirm(false)}>
+          <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">מחיקת {client.name}</div>
+              <button className="close-btn" onClick={() => setShowDeleteConfirm(false)}>×</button>
+            </div>
+            <div className="dynamic-banner" style={{ background: 'var(--red-lt)', borderColor: 'rgba(185,28,28,0.25)', color: 'var(--red)' }}>
+              ⚠️ פעולה זו בלתי הפיכה. מחיקת הלקוח תמחק לצמיתות גם את <b>כל</b> ההיסטוריה שלו — כל הדיווחים והסימונים מכל החודשים, בלי אפשרות שחזור.
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+              <button className="btn btn-danger" style={{ flex: 1, justifyContent: 'center' }} onClick={confirmDelete} disabled={deleting}>
+                {deleting ? 'מוחק…' : 'כן, מחק לצמיתות'}
+              </button>
+              <button className="btn" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

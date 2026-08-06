@@ -30,15 +30,19 @@ export default async function DashboardPage() {
   const rows = (clients || [])
     .map(c => {
       const selectedIds = formTypeMap.get(c.id) || new Set()
-      return {
-        client: c,
-        ...computeClientStatus({
-          cycle: c.cycle, cycleStartDate: c.cycle_start_date,
-          formTypes: (formTypes || []).filter(ft => selectedIds.has(ft.id)),
-          items: (items || []).filter(i => i.client_id === c.id),
-          today, reminderDayOfMonth: reminderDay,
-        }),
-      }
+      const clientItems = (items || []).filter(i => i.client_id === c.id)
+      const status = computeClientStatus({
+        cycle: c.cycle, cycleStartDate: c.cycle_start_date,
+        formTypes: (formTypes || []).filter(ft => selectedIds.has(ft.id)),
+        items: clientItems,
+        today, reminderDayOfMonth: reminderDay,
+      })
+      // "Completed at" = the moment the LAST outstanding item was checked — the checked_at of
+      // the most recently checked item, which is when the client actually became complete.
+      const completedAt = status.complete
+        ? clientItems.filter(i => i.checked && i.checked_at).map(i => i.checked_at as string).sort().at(-1) ?? null
+        : null
+      return { client: c, ...status, completedAt }
     })
     .filter(r => r.relevant)
 
@@ -76,7 +80,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <DashboardStats rows={rows} reminderDay={reminderDay} />
+      <DashboardStats rows={rows} reminderDay={reminderDay} today={today} />
     </div>
   )
 }
