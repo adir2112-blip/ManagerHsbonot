@@ -77,6 +77,14 @@ export function computeMonthStatus(formTypes: FormType[], items: ChecklistItem[]
   return { total, checkedCount, complete: total > 0 && checkedCount === total }
 }
 
+// Used by both the cron and the manual "שלח מייל תזכורת" button to name exactly which forms
+// are still missing for a client's month, rather than just a count.
+export function missingFormTypes(formTypes: FormType[], items: ChecklistItem[], year: number, month: number): FormType[] {
+  const applicable = applicableFormTypes(formTypes, year, month)
+  const checkedIds = new Set(items.filter(i => i.year === year && i.month === month && i.checked).map(i => i.form_type_id))
+  return applicable.filter(ft => !checkedIds.has(ft.id))
+}
+
 // "Today" in Israel time, independent of the server/cron's own UTC clock — a Vercel Cron
 // firing at a fixed UTC hour must not let the reminder-day-of-month check drift across DST.
 export function israelToday(now: Date = new Date()): { year: number; month: number; day: number } {
@@ -112,22 +120,3 @@ export function computeClientStatus(opts: {
   return { relevant: true, complete: status.complete, checkedCount: status.checkedCount, total: status.total, isBehind, daysBehind }
 }
 
-// Reminder gating: never before reminder_day_of_month in the relevant month; then re-arm
-// every reminder_interval_days after the last one actually sent (status irrelevant — 'sent',
-// 'failed' and 'skipped' are all retried the same way, since 'skipped' just means "no provider
-// configured yet" and should catch up automatically once RESEND_API_KEY is set).
-export function shouldSendReminder(opts: {
-  today: { year: number; month: number; day: number }
-  relevantYear: number
-  relevantMonth: number
-  reminderDayOfMonth: number
-  reminderIntervalDays: number
-  lastSentAt: Date | null
-}): boolean {
-  const { today, relevantYear, relevantMonth, reminderDayOfMonth, reminderIntervalDays, lastSentAt } = opts
-  if (today.year !== relevantYear || today.month !== relevantMonth) return false
-  if (today.day < reminderDayOfMonth) return false
-  if (!lastSentAt) return true
-  const msSinceLast = Date.UTC(today.year, today.month - 1, today.day) - Date.UTC(lastSentAt.getUTCFullYear(), lastSentAt.getUTCMonth(), lastSentAt.getUTCDate())
-  return msSinceLast >= reminderIntervalDays * 86400000
-}

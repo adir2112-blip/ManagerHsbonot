@@ -15,10 +15,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     .single()
   if (clientErr || !client) return NextResponse.json({ error: 'לקוח לא נמצא' }, { status: 404 })
 
-  const [{ data: allFormTypes }, { data: items }, formTypeMap] = await Promise.all([
+  const [{ data: allFormTypes }, { data: items }, formTypeMap, { data: emailHistory }] = await Promise.all([
     ctx.supabase.from('form_types').select('*'),
     ctx.supabase.from('checklist_items').select('*').eq('client_id', params.id),
     fetchClientFormTypeMap(ctx.supabase, [params.id]),
+    ctx.supabase.from('reminder_events').select('*').eq('client_id', params.id).order('sent_at', { ascending: false }),
   ])
   const selectedIds = formTypeMap.get(params.id) || new Set()
   const formTypes = (allFormTypes || []).filter(ft => selectedIds.has(ft.id))
@@ -42,7 +43,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     ...computeMonthStatus(formTypes || [], items || [], m.year, m.month),
   })).reverse() // newest month first
 
-  return NextResponse.json({ client, formTypes: formTypes || [], history, today })
+  return NextResponse.json({ client, formTypes: formTypes || [], history, today, emailHistory: emailHistory || [] })
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {

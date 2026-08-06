@@ -5,7 +5,6 @@ import {
   listRelevantMonths,
   applicableFormTypes,
   computeMonthStatus,
-  shouldSendReminder,
 } from '../lib/checklist'
 
 test('monthly client is relevant every month from start date onward', () => {
@@ -61,38 +60,4 @@ test('computeMonthStatus is incomplete until every applicable type is checked', 
   assert.equal(status.total, 2)
   assert.equal(status.checkedCount, 1)
   assert.equal(status.complete, false)
-})
-
-test('shouldSendReminder: no reminder before reminder_day_of_month', () => {
-  assert.equal(shouldSendReminder({
-    today: { year: 2025, month: 8, day: 5 },
-    relevantYear: 2025, relevantMonth: 8,
-    reminderDayOfMonth: 10, reminderIntervalDays: 3,
-    lastSentAt: null,
-  }), false)
-})
-
-test('shouldSendReminder: fires once threshold day is reached with no prior send', () => {
-  assert.equal(shouldSendReminder({
-    today: { year: 2025, month: 8, day: 10 },
-    relevantYear: 2025, relevantMonth: 8,
-    reminderDayOfMonth: 10, reminderIntervalDays: 3,
-    lastSentAt: null,
-  }), true)
-})
-
-test('shouldSendReminder: nags again only after the interval has elapsed', () => {
-  const lastSentAt = new Date(Date.UTC(2025, 7, 10))
-  assert.equal(shouldSendReminder({
-    today: { year: 2025, month: 8, day: 12 },
-    relevantYear: 2025, relevantMonth: 8,
-    reminderDayOfMonth: 10, reminderIntervalDays: 3,
-    lastSentAt,
-  }), false) // only 2 days since last send
-  assert.equal(shouldSendReminder({
-    today: { year: 2025, month: 8, day: 13 },
-    relevantYear: 2025, relevantMonth: 8,
-    reminderDayOfMonth: 10, reminderIntervalDays: 3,
-    lastSentAt,
-  }), true) // 3 days since last send
 })
