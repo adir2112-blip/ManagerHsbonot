@@ -48,13 +48,31 @@ export default function Topbar({ fullName, role }: TopbarProps) {
   const [showReminderPopup, setShowReminderPopup] = useState(false)
   const [rescheduleFor, setRescheduleFor] = useState<string | null>(null)
   const [rescheduleValue, setRescheduleValue] = useState('')
+  const notifiedIds = useRef<Set<string>>(new Set()) // avoid re-firing a browser notification every poll for a reminder still sitting unhandled
 
   useEffect(() => {
+    // Ask once per session (browsers won't re-prompt if already granted/denied) — this only
+    // covers "browser is open, tab isn't focused"; a fully closed browser needs real email.
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {})
+    }
+
     function checkDue() {
       apiGet<{ reminders: DueReminder[] }>('/api/reminders?due=1')
         .then(d => {
-          setDueReminders(d.reminders || [])
-          if ((d.reminders || []).length > 0) setShowReminderPopup(true)
+          const reminders = d.reminders || []
+          setDueReminders(reminders)
+          if (reminders.length > 0) setShowReminderPopup(true)
+
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            for (const r of reminders) {
+              if (notifiedIds.current.has(r.id)) continue
+              notifiedIds.current.add(r.id)
+              const title = r.client ? `🔔 תזכורת: ${r.client.name}${r.form_type ? ` — ${r.form_type.name}` : ''}` : '🔔 תזכורת'
+              const n = new Notification(title, { body: r.note || 'לחצי כדי לפתוח את המערכת' })
+              n.onclick = () => { window.focus(); n.close() }
+            }
+          }
         })
         .catch(() => {})
     }
