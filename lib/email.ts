@@ -8,6 +8,39 @@
 // run just starts delivering everything that was piling up as 'skipped', with zero code changes.
 export type SendResult = { status: 'sent' | 'failed' | 'skipped'; error?: string }
 
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+// Plain-text bodies render LTR by default in most mail clients — with no directionality
+// markup, a Hebrew message shows up mirrored/left-aligned ("looks bad"). This renders proper
+// RTL HTML instead (kept alongside the plain-text version as a fallback): blank-line-separated
+// paragraphs, and a paragraph where every line starts with "• " becomes a real bulleted list
+// (matches how the admin-editable template writes the missing-forms list).
+function textToRtlHtml(text: string): string {
+  const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+  const blocks = paragraphs.map(p => {
+    const lines = p.split('\n')
+    if (lines.every(l => l.trim().startsWith('•'))) {
+      const items = lines.map(l => `<li style="margin-bottom:4px;">${escapeHtml(l.trim().replace(/^•\s*/, ''))}</li>`).join('')
+      return `<ul style="margin:0 18px 16px 0;padding:0 18px 0 0;">${items}</ul>`
+    }
+    return `<p style="margin:0 0 16px;">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`
+  }).join('')
+
+  return `
+<div dir="rtl" style="font-family:Arial,Heebo,sans-serif;background:#f1f3f8;padding:24px;">
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,0.08);">
+    <div style="background:linear-gradient(135deg,#10b981,#059669);padding:18px 24px;color:#ffffff;font-size:16px;font-weight:700;">
+      📊 הנהלת החשבונות
+    </div>
+    <div style="padding:24px;text-align:right;font-size:14px;line-height:1.7;color:#111827;">
+      ${blocks}
+    </div>
+  </div>
+</div>`
+}
+
 async function sendViaResend(opts: { to: string; subject: string; body: string }): Promise<SendResult> {
   try {
     const res = await fetch('https://api.resend.com/emails', {
@@ -18,6 +51,7 @@ async function sendViaResend(opts: { to: string; subject: string; body: string }
         to: opts.to,
         subject: opts.subject,
         text: opts.body,
+        html: textToRtlHtml(opts.body),
       }),
     })
     if (!res.ok) {
@@ -43,6 +77,7 @@ async function sendViaGmail(opts: { to: string; subject: string; body: string })
       to: opts.to,
       subject: opts.subject,
       text: opts.body,
+      html: textToRtlHtml(opts.body),
     })
     return { status: 'sent' }
   } catch (err: any) {
