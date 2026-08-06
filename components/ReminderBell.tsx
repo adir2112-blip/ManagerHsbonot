@@ -2,9 +2,11 @@
 import { useState } from 'react'
 import { apiPost } from '@/lib/client'
 
-// Small popover on a bell icon — "client asked to be called back tomorrow at 10 about the VAT
-// form" becomes a personal reminder tied to this client+task, which pops up for whoever created
-// it (see Topbar's polling) and shows on their personal reminders calendar.
+// "Client asked to be called back tomorrow at 10 about the VAT form" becomes a personal
+// reminder tied to this client+task, which pops up for whoever created it (see Topbar's
+// polling) and shows on their personal reminders calendar. A centered modal (not a floating
+// popover) — a small absolutely-positioned panel here would clip off-screen on mobile or
+// inside a nested popup (e.g. the dashboard's "אילו משימות" modal).
 export default function ReminderBell({ clientId, formTypeId }: { clientId: string; formTypeId: string }) {
   const [open, setOpen] = useState(false)
   const [remindAt, setRemindAt] = useState('')
@@ -28,37 +30,41 @@ export default function ReminderBell({ clientId, formTypeId }: { clientId: strin
   }
 
   return (
-    <div style={{ position: 'relative', flexShrink: 0 }}>
+    <>
       <button
         type="button"
         className="btn btn-xs"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(true)}
         title="קביעת תזכורת אישית"
-        style={justCreated ? { background: 'var(--green-lt)', color: 'var(--green)' } : undefined}
+        style={justCreated ? { background: 'var(--green-lt)', color: 'var(--green)', flexShrink: 0 } : { flexShrink: 0 }}
       >
         {justCreated ? '✓' : '🔔'}
       </button>
+
       {open && (
-        <div
-          onClick={e => e.stopPropagation()}
-          style={{ position: 'absolute', top: '110%', left: 0, background: '#fff', border: '1px solid var(--border)', borderRadius: 10, boxShadow: 'var(--shadow-lg)', padding: 12, zIndex: 100, width: 240 }}
-        >
-          <div className="form-group" style={{ marginBottom: 8 }}>
-            <label className="form-label">תאריך ושעה</label>
-            <input className="form-input" type="datetime-local" value={remindAt} onChange={e => setRemindAt(e.target.value)} autoFocus />
-          </div>
-          <div className="form-group" style={{ marginBottom: 8 }}>
-            <label className="form-label">הערה (אופציונלי)</label>
-            <input className="form-input" value={note} onChange={e => setNote(e.target.value)} placeholder="לדוגמה: תחזרי אליי" />
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button type="button" className="btn btn-primary btn-xs" style={{ flex: 1, justifyContent: 'center' }} onClick={create} disabled={saving || !remindAt}>
-              {saving ? 'שומר…' : 'קביעת תזכורת'}
-            </button>
-            <button type="button" className="btn btn-xs" onClick={() => setOpen(false)}>ביטול</button>
+        <div className="modal-overlay" onClick={() => !saving && setOpen(false)}>
+          <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">🔔 קביעת תזכורת אישית</div>
+              <button className="close-btn" onClick={() => setOpen(false)}>×</button>
+            </div>
+            <div className="form-group">
+              <label className="form-label">תאריך ושעה</label>
+              <input className="form-input" type="datetime-local" value={remindAt} onChange={e => setRemindAt(e.target.value)} autoFocus />
+            </div>
+            <div className="form-group">
+              <label className="form-label">הערה (אופציונלי)</label>
+              <input className="form-input" value={note} onChange={e => setNote(e.target.value)} placeholder="לדוגמה: תחזרי אליי" />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" className="btn btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={create} disabled={saving || !remindAt}>
+                {saving ? 'שומר…' : 'קביעת תזכורת'}
+              </button>
+              <button type="button" className="btn" onClick={() => setOpen(false)} disabled={saving}>ביטול</button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

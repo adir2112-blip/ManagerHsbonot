@@ -35,9 +35,9 @@ export default function DashboardContent({ rows, reminderDay, today, currentUser
 
   return (
     <div>
-      <div className="filter-pills" style={{ marginBottom: 16 }}>
-        <button className={`pill${scope === 'office' ? ' active' : ''}`} onClick={() => setScope('office')}>כל המשרד</button>
-        <button className={`pill${scope === 'mine' ? ' active' : ''}`} onClick={() => setScope('mine')}>הלקוחות שלי</button>
+      <div className="scope-toggle">
+        <button className={scope === 'office' ? 'active' : ''} onClick={() => setScope('office')}>🏢 כל המשרד</button>
+        <button className={scope === 'mine' ? 'active' : ''} onClick={() => setScope('mine')}>👤 הלקוחות שלי</button>
       </div>
 
       {scope === 'office' && (

@@ -46,6 +46,8 @@ export default function Topbar({ fullName, role }: TopbarProps) {
 
   const [dueReminders, setDueReminders] = useState<DueReminder[]>([])
   const [showReminderPopup, setShowReminderPopup] = useState(false)
+  const [rescheduleFor, setRescheduleFor] = useState<string | null>(null)
+  const [rescheduleValue, setRescheduleValue] = useState('')
 
   useEffect(() => {
     function checkDue() {
@@ -61,9 +63,27 @@ export default function Topbar({ fullName, role }: TopbarProps) {
     return () => clearInterval(t)
   }, [])
 
-  async function markReminderDone(id: string) {
+  // "✓ טופל" — the reminder was about going to actually complete the task, so it sends the
+  // employee straight to the client card to mark it there, not just dismiss the popup.
+  async function handleDoneAndGoToClient(r: DueReminder) {
+    try { await apiPatch(`/api/reminders/${r.id}`, { is_done: true }) } catch {}
+    setDueReminders(prev => prev.filter(x => x.id !== r.id))
+    setShowReminderPopup(false)
+    if (r.client) router.push(`/clients/${r.client.id}`)
+  }
+
+  async function cancelReminder(id: string) {
     try { await apiPatch(`/api/reminders/${id}`, { is_done: true }) } catch {}
     setDueReminders(prev => prev.filter(r => r.id !== id))
+    setRescheduleFor(null)
+  }
+
+  async function rescheduleReminder(id: string) {
+    if (!rescheduleValue) return
+    try { await apiPatch(`/api/reminders/${id}`, { remind_at: new Date(rescheduleValue).toISOString() }) } catch {}
+    setDueReminders(prev => prev.filter(r => r.id !== id))
+    setRescheduleFor(null)
+    setRescheduleValue('')
   }
 
   function doSearch(q: string) {
@@ -185,7 +205,27 @@ export default function Topbar({ fullName, role }: TopbarProps) {
                     <span style={{ fontSize: 11, color: '#b91c1c', fontWeight: 600 }}>{fmtDateTime(r.remind_at)}</span>
                   </div>
                   {r.note && <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>{r.note}</div>}
-                  <button className="btn btn-xs" style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }} onClick={() => markReminderDone(r.id)}>✓ טופל</button>
+
+                  {rescheduleFor !== r.id && (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="btn btn-xs" style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }} onClick={() => handleDoneAndGoToClient(r)}>✓ טופל</button>
+                      <button className="btn btn-xs" onClick={() => { setRescheduleFor(r.id); setRescheduleValue('') }}>✗ לא טופל</button>
+                    </div>
+                  )}
+
+                  {rescheduleFor === r.id && (
+                    <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #fca5a5' }}>
+                      <div className="form-group" style={{ marginBottom: 8 }}>
+                        <label className="form-label">לתזמן להתראה חדשה?</label>
+                        <input className="form-input" type="datetime-local" value={rescheduleValue} onChange={e => setRescheduleValue(e.target.value)} />
+                      </div>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button className="btn btn-xs btn-primary" disabled={!rescheduleValue} onClick={() => rescheduleReminder(r.id)}>תזמון מחדש</button>
+                        <button className="btn btn-xs btn-danger" onClick={() => cancelReminder(r.id)}>ביטול התזכורת</button>
+                        <button className="btn btn-xs" onClick={() => setRescheduleFor(null)}>חזרה</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -27,12 +27,15 @@ const nextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
   },
-  // Next's client-side Router Cache otherwise reuses a page's last RSC render for 30s after
-  // navigating away — e.g. checking off a checklist item, then going back to /clients, showed
-  // stale "0/2" counts because the cached list page wasn't refetched. Data here changes on
-  // nearly every navigation (checklist toggles, new clients), so always refetch.
+  // Was staleTimes.dynamic: 0 (fixed a stale-checklist-count bug) — but that disables the
+  // Router Cache for EVERY navigation everywhere, which is what made clicking around feel
+  // sluggish (every page visit re-hits Supabase, even unrelated ones, instead of using the
+  // client-side cache). A short 5s bound keeps navigation snappy for normal back-and-forth
+  // clicking while capping worst-case staleness to something no one will actually notice
+  // (checking a box, then immediately clicking to another page, still shows fresh data —
+  // ChecklistMonth also calls router.refresh() itself right after a toggle/note save).
   experimental: {
-    staleTimes: { dynamic: 0 },
+    staleTimes: { dynamic: 5 },
   },
 }
 

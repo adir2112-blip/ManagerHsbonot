@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { apiGet, apiPatch } from '@/lib/client'
 import ReminderBell from '@/components/ReminderBell'
 
@@ -20,6 +21,7 @@ function formatWho(item: ChecklistItemRow): string | null {
 }
 
 export default function ChecklistMonth({ clientId, year, month, onChanged }: { clientId: string; year: number; month: number; onChanged?: () => void }) {
+  const router = useRouter()
   const [formTypes, setFormTypes] = useState<FormType[]>([])
   const [items, setItems] = useState<ChecklistItemRow[]>([])
   const [loading, setLoading] = useState(true)
