@@ -3,6 +3,7 @@
 export const NAV_ITEMS = [
   { key: 'dashboard', href: '/dashboard', label: '🏠 ראשי' },
   { key: 'clients', href: '/clients', label: '👥 לקוחות' },
+  { key: 'reminders', href: '/reminders', label: '🔔 תזכורות' },
 ] as const
 
 export const ADMIN_NAV_ITEMS = [

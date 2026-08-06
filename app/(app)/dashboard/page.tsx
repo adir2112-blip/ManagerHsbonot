@@ -1,7 +1,7 @@
 import { getCurrentUser } from '@/lib/supabase/server'
 import { computeClientStatus, israelToday } from '@/lib/checklist'
 import { fetchClientFormTypeMap } from '@/lib/client-form-types'
-import DashboardStats from '@/components/DashboardStats'
+import DashboardContent from '@/components/DashboardContent'
 
 const HEBREW_MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
 
@@ -46,41 +46,13 @@ export default async function DashboardPage() {
     })
     .filter(r => r.relevant)
 
-  const behindCount = rows.filter(r => r.isBehind).length
-
-  const byEmployee = new Map<string, { name: string; behind: number; total: number }>()
-  for (const r of rows) {
-    const key = r.client.assigned_employee?.id || 'unassigned'
-    const name = r.client.assigned_employee?.full_name || 'ללא שיוך'
-    const entry = byEmployee.get(key) || { name, behind: 0, total: 0 }
-    entry.total++
-    if (r.isBehind) entry.behind++
-    byEmployee.set(key, entry)
-  }
-
   return (
     <div>
       <div className="page-header">
         <div className="page-title">לוח בקרה — {HEBREW_MONTHS[today.month - 1]} {today.year}</div>
       </div>
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div className="card-header"><div className="card-title">לפי עובדת אחראית</div></div>
-        <div className="card-pad">
-          {[...byEmployee.values()].map(e => (
-            <div key={e.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-              <span>{e.name}</span>
-              <span>
-                {e.behind > 0 ? <span className="badge b-red">{e.behind} בפיגור</span> : <span className="badge b-green">הכל בסדר</span>}
-                <span style={{ color: 'var(--text3)', fontSize: 11, marginRight: 8 }}>מתוך {e.total} לקוחות</span>
-              </span>
-            </div>
-          ))}
-          {byEmployee.size === 0 && <div className="td-muted">אין לקוחות רלוונטיים החודש</div>}
-        </div>
-      </div>
-
-      <DashboardStats rows={rows} reminderDay={reminderDay} today={today} />
+      <DashboardContent rows={rows} reminderDay={reminderDay} today={today} currentUserId={ctx.user.id} />
     </div>
   )
 }

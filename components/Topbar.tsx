@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { apiGet } from '@/lib/client'
+import { apiGet, apiPatch } from '@/lib/client'
 import { NAV_ITEMS, ADMIN_NAV_ITEMS } from '@/lib/nav-items'
 
 interface TopbarProps {
@@ -13,12 +13,24 @@ interface TopbarProps {
 
 interface ClientStatus { relevant: boolean; complete: boolean; checkedCount: number; total: number; isBehind: boolean; daysBehind: number }
 interface ClientResult { id: string; name: string; phone: string | null; status: ClientStatus }
+interface DueReminder {
+  id: string; remind_at: string; note: string | null
+  client: { id: string; name: string } | null
+  form_type: { id: string; name: string } | null
+}
 
 function StatusBadge({ status }: { status: ClientStatus }) {
   if (!status.relevant) return <span style={{ fontSize: 11, color: '#9ca3af' }}>לא רלוונטי החודש</span>
   if (status.isBehind) return <span className="badge b-red">בחריגה {status.daysBehind} ימים</span>
   if (status.complete) return <span className="badge b-green">✓ הושלם</span>
   return <span className="badge b-amber">{status.checkedCount}/{status.total}</span>
+}
+
+function fmtDateTime(iso: string): string {
+  const d = new Date(iso)
+  const date = d.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })
+  const time = d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' })
+  return `${date} ${time}`
 }
 
 export default function Topbar({ fullName, role }: TopbarProps) {
@@ -31,6 +43,28 @@ export default function Topbar({ fullName, role }: TopbarProps) {
   const [showResults, setShowResults] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const [dueReminders, setDueReminders] = useState<DueReminder[]>([])
+  const [showReminderPopup, setShowReminderPopup] = useState(false)
+
+  useEffect(() => {
+    function checkDue() {
+      apiGet<{ reminders: DueReminder[] }>('/api/reminders?due=1')
+        .then(d => {
+          setDueReminders(d.reminders || [])
+          if ((d.reminders || []).length > 0) setShowReminderPopup(true)
+        })
+        .catch(() => {})
+    }
+    checkDue()
+    const t = setInterval(checkDue, 60_000) // poll every minute — good enough for a reminder, not a real-time chat
+    return () => clearInterval(t)
+  }, [])
+
+  async function markReminderDone(id: string) {
+    try { await apiPatch(`/api/reminders/${id}`, { is_done: true }) } catch {}
+    setDueReminders(prev => prev.filter(r => r.id !== id))
+  }
 
   function doSearch(q: string) {
     setSearchQ(q)
@@ -120,6 +154,12 @@ export default function Topbar({ fullName, role }: TopbarProps) {
           )}
         </div>
 
+        {dueReminders.length > 0 && (
+          <button onClick={() => setShowReminderPopup(true)} style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 999, padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: '#b91c1c', fontFamily: 'Heebo,sans-serif' }}>
+            🔔 {dueReminders.length}
+          </button>
+        )}
+
         <div className="user-pill">
           <div className="avatar">{initials}</div>
           <div>
@@ -129,6 +169,30 @@ export default function Topbar({ fullName, role }: TopbarProps) {
         </div>
         <button className="btn btn-white btn-sm" onClick={handleLogout}>יציאה</button>
       </div>
+
+      {showReminderPopup && dueReminders.length > 0 && (
+        <div className="modal-overlay" onClick={() => setShowReminderPopup(false)}>
+          <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">🔔 תזכורות שממתינות לך</div>
+              <span style={{ marginRight: 'auto', fontSize: 12, color: '#9ca3af' }}>{dueReminders.length} תזכורות</span>
+            </div>
+            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+              {dueReminders.map(r => (
+                <div key={r.id} style={{ background: '#fff5f5', border: '1px solid #fca5a5', borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: 13 }}>{r.client?.name || 'לקוח'}{r.form_type ? ` — ${r.form_type.name}` : ''}</span>
+                    <span style={{ fontSize: 11, color: '#b91c1c', fontWeight: 600 }}>{fmtDateTime(r.remind_at)}</span>
+                  </div>
+                  {r.note && <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>{r.note}</div>}
+                  <button className="btn btn-xs" style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }} onClick={() => markReminderDone(r.id)}>✓ טופל</button>
+                </div>
+              ))}
+            </div>
+            <button className="btn" style={{ width: '100%', justifyContent: 'center', marginTop: 14 }} onClick={() => setShowReminderPopup(false)}>סגור</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
