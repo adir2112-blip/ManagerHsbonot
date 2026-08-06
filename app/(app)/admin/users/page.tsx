@@ -4,7 +4,15 @@ import { apiGet, apiPatch, apiPost } from '@/lib/client'
 
 interface UserRow {
   id: string; username: string; full_name: string; role: 'admin' | 'bookkeeper'
-  active: boolean; notification_email: string | null
+  active: boolean; notification_email: string | null; last_sign_in_at: string | null
+}
+
+function fmtLastLogin(iso: string | null): string {
+  if (!iso) return 'מעולם לא'
+  const d = new Date(iso)
+  const date = d.toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', day: '2-digit', month: '2-digit', year: 'numeric' })
+  const time = d.toLocaleTimeString('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' })
+  return `${date} ${time}`
 }
 
 export default function UsersAdminPage() {
@@ -94,7 +102,7 @@ export default function UsersAdminPage() {
       <div className="card">
         <div className="table-wrap">
           <table>
-            <thead><tr><th>שם משתמש</th><th>שם מלא</th><th>תפקיד</th><th>אימייל לתזכורות</th><th>סטטוס</th><th></th></tr></thead>
+            <thead><tr><th>שם משתמש</th><th>שם מלא</th><th>תפקיד</th><th>אימייל לתזכורות</th><th>התחברות אחרונה</th><th>סטטוס</th><th></th></tr></thead>
             <tbody>
               {users.map(u => (
                 <tr key={u.id}>
@@ -107,6 +115,7 @@ export default function UsersAdminPage() {
                     </select>
                   </td>
                   <td className="td-muted">{u.notification_email || '—'}</td>
+                  <td className="td-mono">{fmtLastLogin(u.last_sign_in_at)}</td>
                   <td>{u.active ? <span className="badge b-green">פעיל</span> : <span className="badge b-gray">מושבת</span>}</td>
                   <td style={{ display: 'flex', gap: 6 }}>
                     <button className="btn btn-xs" onClick={() => toggleActive(u)}>{u.active ? 'השבתה' : 'הפעלה'}</button>

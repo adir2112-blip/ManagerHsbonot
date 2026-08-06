@@ -2,13 +2,21 @@ import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/api-guard'
 import { createAdminClient, usernameToEmail, isValidUsername } from '@/lib/supabase/admin'
 
+// last_sign_in_at lives on auth.users, not profiles — only readable via the service-role
+// Admin API, so it's merged in here rather than being a normal RLS-visible column.
 export async function GET() {
   const guard = await requireAdmin()
   if ('error' in guard) return guard.error
   const { ctx } = guard
   const { data, error } = await ctx.supabase.from('profiles').select('*').order('created_at')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ users: data })
+
+  const admin = createAdminClient()
+  const { data: authList } = await admin.auth.admin.listUsers({ perPage: 200 })
+  const lastSignInById = new Map((authList?.users || []).map(u => [u.id, u.last_sign_in_at]))
+
+  const users = (data || []).map(u => ({ ...u, last_sign_in_at: lastSignInById.get(u.id) || null }))
+  return NextResponse.json({ users })
 }
 
 export async function POST(req: Request) {
