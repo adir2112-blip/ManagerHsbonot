@@ -85,6 +85,33 @@ export function israelToday(now: Date = new Date()): { year: number; month: numb
   return { year, month, day }
 }
 
+export interface ClientStatus {
+  relevant: boolean // false = client's cycle doesn't include the current month at all
+  complete: boolean
+  checkedCount: number
+  total: number
+  isBehind: boolean
+  daysBehind: number
+}
+
+// Shared by the dashboard (per-client rows) and the topbar client search (so a search result
+// shows the same "behind schedule, by how many days" signal without a second implementation).
+export function computeClientStatus(opts: {
+  cycle: Cycle
+  cycleStartDate: string
+  formTypes: FormType[]
+  items: ChecklistItem[]
+  today: { year: number; month: number; day: number }
+  reminderDayOfMonth: number
+}): ClientStatus {
+  const relevant = isMonthRelevant(opts.cycle, opts.cycleStartDate, opts.today.year, opts.today.month)
+  if (!relevant) return { relevant: false, complete: false, checkedCount: 0, total: 0, isBehind: false, daysBehind: 0 }
+  const status = computeMonthStatus(opts.formTypes, opts.items, opts.today.year, opts.today.month)
+  const isBehind = !status.complete && opts.today.day >= opts.reminderDayOfMonth
+  const daysBehind = isBehind ? opts.today.day - opts.reminderDayOfMonth : 0
+  return { relevant: true, complete: status.complete, checkedCount: status.checkedCount, total: status.total, isBehind, daysBehind }
+}
+
 // Reminder gating: never before reminder_day_of_month in the relevant month; then re-arm
 // every reminder_interval_days after the last one actually sent (status irrelevant — 'sent',
 // 'failed' and 'skipped' are all retried the same way, since 'skipped' just means "no provider

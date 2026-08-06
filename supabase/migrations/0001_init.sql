@@ -3,6 +3,15 @@
 -- (set by admin/users provisioning via the service-role Admin API), not looked up from a
 -- table inside policies — avoids the classic RLS-recursion trap on a `profiles` self-check.
 
+-- Safe to re-run: drops any partially-created objects from a previous failed attempt first.
+drop table if exists public.reminder_events cascade;
+drop table if exists public.checklist_items cascade;
+drop table if exists public.clients cascade;
+drop table if exists public.form_types cascade;
+drop table if exists public.app_settings cascade;
+drop table if exists public.profiles cascade;
+drop function if exists public.is_admin();
+
 -- ============================================================================
 -- profiles — mirrors auth.users, adds role/display name/notification email.
 -- Row is created by the admin/users provisioning route (server, service-role) right after

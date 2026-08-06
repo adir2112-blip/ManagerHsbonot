@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/api-guard'
 import { applicableFormTypes } from '@/lib/checklist'
+import { fetchClientFormTypeMap } from '@/lib/client-form-types'
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const guard = await requireAuth()
@@ -12,12 +13,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const month = Number(url.searchParams.get('month'))
   if (!year || !month) return NextResponse.json({ error: 'חסר year/month' }, { status: 400 })
 
-  const [{ data: formTypes }, { data: items }] = await Promise.all([
+  const [{ data: allFormTypes }, { data: items }, formTypeMap] = await Promise.all([
     ctx.supabase.from('form_types').select('*'),
     ctx.supabase.from('checklist_items').select('*, checked_by_profile:checked_by(full_name)').eq('client_id', params.id).eq('year', year).eq('month', month),
+    fetchClientFormTypeMap(ctx.supabase, [params.id]),
   ])
+  const selectedIds = formTypeMap.get(params.id) || new Set()
+  const clientFormTypes = (allFormTypes || []).filter(ft => selectedIds.has(ft.id))
 
-  const applicable = applicableFormTypes(formTypes || [], year, month).sort((a: any, b: any) => a.sort_order - b.sort_order)
+  const applicable = applicableFormTypes(clientFormTypes, year, month).sort((a: any, b: any) => a.sort_order - b.sort_order)
   return NextResponse.json({ formTypes: applicable, items: items || [] })
 }
 

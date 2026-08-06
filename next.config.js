@@ -27,6 +27,13 @@ const nextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }]
   },
+  // Next's client-side Router Cache otherwise reuses a page's last RSC render for 30s after
+  // navigating away — e.g. checking off a checklist item, then going back to /clients, showed
+  // stale "0/2" counts because the cached list page wasn't refetched. Data here changes on
+  // nearly every navigation (checklist toggles, new clients), so always refetch.
+  experimental: {
+    staleTimes: { dynamic: 0 },
+  },
 }
 
 module.exports = nextConfig

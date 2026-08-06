@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/api-guard'
 import { computeMonthStatus, israelToday, listRelevantMonths, type YearMonth } from '@/lib/checklist'
+import { fetchClientFormTypeMap } from '@/lib/client-form-types'
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const guard = await requireAuth()
@@ -14,10 +15,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     .single()
   if (clientErr || !client) return NextResponse.json({ error: 'לקוח לא נמצא' }, { status: 404 })
 
-  const [{ data: formTypes }, { data: items }] = await Promise.all([
+  const [{ data: allFormTypes }, { data: items }, formTypeMap] = await Promise.all([
     ctx.supabase.from('form_types').select('*'),
     ctx.supabase.from('checklist_items').select('*').eq('client_id', params.id),
+    fetchClientFormTypeMap(ctx.supabase, [params.id]),
   ])
+  const selectedIds = formTypeMap.get(params.id) || new Set()
+  const formTypes = (allFormTypes || []).filter(ft => selectedIds.has(ft.id))
 
   const today = israelToday()
   const computedMonths = listRelevantMonths(client.cycle, client.cycle_start_date, today.year, today.month)
@@ -38,7 +42,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     ...computeMonthStatus(formTypes || [], items || [], m.year, m.month),
   })).reverse() // newest month first
 
-  return NextResponse.json({ client, formTypes: formTypes || [], history })
+  return NextResponse.json({ client, formTypes: formTypes || [], history, today })
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -47,7 +51,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const { ctx } = guard
 
   const body = await req.json().catch(() => ({}))
-  const allowed = ['name', 'cycle', 'cycle_start_date', 'assigned_employee_id', 'notes', 'active']
+  const allowed = ['name', 'phone', 'email', 'cycle', 'cycle_start_date', 'assigned_employee_id', 'notes', 'active']
   const patch: Record<string, unknown> = {}
   for (const key of allowed) if (key in body) patch[key] = body[key]
   if (Object.keys(patch).length === 0) return NextResponse.json({ error: 'אין מה לעדכן' }, { status: 400 })

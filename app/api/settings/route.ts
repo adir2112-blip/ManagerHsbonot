@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
-import { requireAdmin } from '@/lib/api-guard'
+import { requireAuth } from '@/lib/api-guard'
 
+// Open to any authenticated user (not admin-only) — the overdue-day threshold is one shared
+// office-wide setting, and any bookkeeper should be able to adjust it, not just the admin.
+// RLS (app_settings_update policy) is the real enforcement of "authenticated, no ownership
+// check needed" — this route-level check just rules out unauthenticated requests.
 export async function GET() {
-  const guard = await requireAdmin()
+  const guard = await requireAuth()
   if ('error' in guard) return guard.error
   const { ctx } = guard
   const { data, error } = await ctx.supabase.from('app_settings').select('*').single()
@@ -11,7 +15,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const guard = await requireAdmin()
+  const guard = await requireAuth()
   if ('error' in guard) return guard.error
   const { ctx } = guard
 

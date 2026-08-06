@@ -33,8 +33,9 @@ export default function LoginPage() {
     <div className="login-wrap">
       <form className="login-card" onSubmit={handleSubmit}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 18, fontWeight: 800 }}>מעקב טפסים חודשי</div>
-          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>התחברות למערכת</div>
+          <div className="login-brand-icon">📊</div>
+          <div style={{ fontSize: 19, fontWeight: 800 }}>מעקב טפסים חודשי</div>
+          <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>מערכת ניהול פנימית להנהלת חשבונות</div>
         </div>
         <div className="form-group">
           <label className="form-label">שם משתמש</label>

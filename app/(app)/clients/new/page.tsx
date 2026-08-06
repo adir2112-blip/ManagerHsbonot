@@ -9,6 +9,8 @@ export default function NewClientPage() {
   const router = useRouter()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [cycle, setCycle] = useState<'monthly' | 'bimonthly'>('monthly')
   const [cycleStartDate, setCycleStartDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [assignedEmployeeId, setAssignedEmployeeId] = useState('')
@@ -26,7 +28,7 @@ export default function NewClientPage() {
     setSaving(true)
     try {
       const { client } = await apiPost<{ client: { id: string } }>('/api/clients', {
-        name, cycle, cycle_start_date: cycleStartDate,
+        name, phone: phone || null, email: email || null, cycle, cycle_start_date: cycleStartDate,
         assigned_employee_id: assignedEmployeeId || null,
         notes: notes || null,
       })
@@ -42,11 +44,21 @@ export default function NewClientPage() {
     <div>
       <div className="page-header"><div className="page-title">לקוח חדש</div></div>
       <form className="card card-pad" onSubmit={handleSubmit} style={{ maxWidth: 520 }}>
-        <div className="form-group">
-          <label className="form-label">שם הלקוח</label>
-          <input className="form-input" value={name} onChange={e => setName(e.target.value)} required autoFocus />
-        </div>
         <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">שם הלקוח</label>
+            <input className="form-input" value={name} onChange={e => setName(e.target.value)} required autoFocus />
+          </div>
+          <div className="form-group">
+            <label className="form-label">טלפון</label>
+            <input className="form-input" type="tel" value={phone} onChange={e => setPhone(e.target.value)} style={{ direction: 'ltr', textAlign: 'right' }} />
+          </div>
+        </div>
+        <div className="form-row-3">
+          <div className="form-group">
+            <label className="form-label">אימייל הלקוח (אופציונלי)</label>
+            <input className="form-input" type="email" value={email} onChange={e => setEmail(e.target.value)} style={{ direction: 'ltr', textAlign: 'right' }} />
+          </div>
           <div className="form-group">
             <label className="form-label">מחזוריות</label>
             <select className="form-input" value={cycle} onChange={e => setCycle(e.target.value as any)}>

@@ -9,12 +9,12 @@ export default function SettingsAdminPage() {
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    apiGet<{ settings: Settings }>('/api/admin/settings').then(d => setSettings(d.settings))
+    apiGet<{ settings: Settings }>('/api/settings').then(d => setSettings(d.settings))
   }, [])
 
   async function save() {
     if (!settings) return
-    await apiPatch('/api/admin/settings', settings)
+    await apiPatch('/api/settings', settings)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
