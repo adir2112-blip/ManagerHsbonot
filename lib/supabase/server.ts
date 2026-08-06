@@ -1,0 +1,40 @@
+import { cookies } from 'next/headers'
+import { createServerClient } from '@supabase/ssr'
+
+// Session-scoped server client for Server Components / Route Handlers — reads the caller's
+// own auth cookie, so auth.uid() is real and RLS is the actual enforcement layer.
+// Never use this for /admin/* provisioning or the cron endpoint — those need
+// lib/supabase/admin.ts (service-role, bypasses RLS) instead.
+export async function createClient() {
+  const cookieStore = await cookies()
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+          } catch {
+            // called from a Server Component that can't set cookies — middleware refreshes
+            // the session on the next request, so this is safe to ignore.
+          }
+        },
+      },
+    }
+  )
+}
+
+// Returns { user, role } for the current request, or null if not authenticated.
+// role comes from the JWT app_metadata (see lib/supabase/admin.ts) — no extra DB query,
+// and no recursive RLS lookup against profiles.
+export async function getCurrentUser() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const role = (user.app_metadata?.role as string) || 'bookkeeper'
+  return { user, role, supabase }
+}
