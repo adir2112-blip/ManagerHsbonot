@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendReminderEmail } from '@/lib/email'
-import { isMonthRelevant, computeMonthStatus, shouldSendReminder, israelToday } from '@/lib/checklist'
+import { isMonthRelevant, applicableFormTypes, shouldSendReminder, israelToday } from '@/lib/checklist'
+import { fetchClientFormTypeMap } from '@/lib/client-form-types'
 
 // Runs daily via Vercel Cron (vercel.json), which invokes with GET and auto-attaches
 // "Authorization: Bearer $CRON_SECRET". Also exported as POST for manual curl testing.
 // Uses the service-role client (bypasses RLS) — this is a system context, not a user
 // session, matching reminder_events' RLS (no write policy exists for regular users, only reads).
+//
+// Goes to the CLIENT directly (clients.email) — NOT the assigned employee. employee_id on
+// reminder_events is kept only as a reference to who owns the client, not a recipient.
 async function handle(req: Request) {
   const auth = req.headers.get('authorization')
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -17,10 +21,13 @@ async function handle(req: Request) {
   const today = israelToday()
 
   const [{ data: clients }, { data: formTypes }, { data: settings }] = await Promise.all([
-    admin.from('clients').select('*, assigned_employee:assigned_employee_id(id, full_name, notification_email, active)').eq('active', true),
+    admin.from('clients').select('*, assigned_employee:assigned_employee_id(id, full_name)').eq('active', true),
     admin.from('form_types').select('*'),
     admin.from('app_settings').select('*').single(),
   ])
+
+  const clientIds = (clients || []).map(c => c.id)
+  const formTypeMap = await fetchClientFormTypeMap(admin, clientIds)
 
   const reminderDayOfMonth = settings?.reminder_day_of_month ?? 10
   const reminderIntervalDays = settings?.reminder_interval_days ?? 3
@@ -29,9 +36,10 @@ async function handle(req: Request) {
 
   for (const client of clients || []) {
     if (!isMonthRelevant(client.cycle, client.cycle_start_date, today.year, today.month)) continue
+    if (!client.email) { skipped++; continue }
 
-    const employee = client.assigned_employee
-    if (!employee || !employee.active || !employee.notification_email) { skipped++; continue }
+    const selectedIds = formTypeMap.get(client.id) || new Set()
+    const clientFormTypes = (formTypes || []).filter(ft => selectedIds.has(ft.id))
 
     const { data: items } = await admin
       .from('checklist_items')
@@ -39,8 +47,11 @@ async function handle(req: Request) {
       .eq('client_id', client.id)
       .eq('year', today.year)
       .eq('month', today.month)
-    const status = computeMonthStatus(formTypes || [], items || [], today.year, today.month)
-    if (status.complete) continue
+
+    const applicable = applicableFormTypes(clientFormTypes, today.year, today.month)
+    const checkedIds = new Set((items || []).filter(i => i.checked).map(i => i.form_type_id))
+    const missing = applicable.filter(ft => !checkedIds.has(ft.id))
+    if (missing.length === 0) continue // complete
 
     const { data: lastEvent } = await admin
       .from('reminder_events')
@@ -62,15 +73,16 @@ async function handle(req: Request) {
     })
     if (!due) { notDue++; continue }
 
+    const missingNames = missing.map((ft: any) => `• ${ft.name}`).join('\n')
     const result = await sendReminderEmail({
-      to: employee.notification_email,
-      subject: `תזכורת: טפסים לא הושלמו — ${client.name}`,
-      body: `שלום ${employee.full_name},\n\nהחודש עדיין חסרים ${status.total - status.checkedCount} מתוך ${status.total} טפסים עבור הלקוח "${client.name}".\nלצפייה: היכנסי למערכת מעקב הטפסים.\n`,
+      to: client.email,
+      subject: `תזכורת: טפסים חסרים החודש — ${client.name}`,
+      body: `שלום ${client.name},\n\nטרם התקבלו אצלנו הטפסים הבאים החודש:\n${missingNames}\n\nנשמח לקבל אותם בהקדם.\nתודה!\n`,
     })
 
     await admin.from('reminder_events').insert({
       client_id: client.id,
-      employee_id: employee.id,
+      employee_id: client.assigned_employee?.id || null,
       year: today.year,
       month: today.month,
       status: result.status,
