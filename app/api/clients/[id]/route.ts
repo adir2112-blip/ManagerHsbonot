@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/api-guard'
-import { computeMonthStatus, israelToday, listRelevantMonths, type YearMonth } from '@/lib/checklist'
+import { computeMonthStatus, computeReliability, israelToday, listRelevantMonths, type YearMonth } from '@/lib/checklist'
 import { fetchClientFormTypeMap } from '@/lib/client-form-types'
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -43,7 +43,13 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     ...computeMonthStatus(formTypes || [], items || [], m.year, m.month),
   })).reverse() // newest month first
 
-  return NextResponse.json({ client, formTypes: formTypes || [], history, today, emailHistory: emailHistory || [] })
+  const pastMonths = history.filter(h => !(h.year === today.year && h.month === today.month))
+  const sentMonths = new Set(
+    (emailHistory || []).filter(e => e.status === 'sent').map(e => `${e.year}-${e.month}`)
+  )
+  const reliability = computeReliability(pastMonths, sentMonths)
+
+  return NextResponse.json({ client, formTypes: formTypes || [], history, today, emailHistory: emailHistory || [], reliability })
 }
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {

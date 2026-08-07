@@ -13,6 +13,7 @@ interface Client {
   assigned_employee_id: string | null; assigned_employee: Employee | null; notes: string | null; active: boolean
 }
 interface HistoryRow { year: number; month: number; total: number; checkedCount: number; complete: boolean }
+interface Reliability { totalMonths: number; lateMonths: number }
 interface EmailEvent {
   id: string; sent_at: string | null; status: 'sent' | 'failed' | 'skipped'
   error_message: string | null; stage_days_overdue: number | null; year: number; month: number
@@ -41,6 +42,7 @@ export default function ClientDetailPage() {
   const [client, setClient] = useState<Client | null>(null)
   const [history, setHistory] = useState<HistoryRow[]>([])
   const [emailHistory, setEmailHistory] = useState<EmailEvent[]>([])
+  const [reliability, setReliability] = useState<Reliability | null>(null)
   const [today, setToday] = useState<{ year: number; month: number } | null>(null)
   const [sendingReminder, setSendingReminder] = useState(false)
   const [sendReminderError, setSendReminderError] = useState('')
@@ -56,11 +58,12 @@ export default function ClientDetailPage() {
   const [editAssignee, setEditAssignee] = useState('')
 
   const load = useCallback(() => {
-    apiGet<{ client: Client; history: HistoryRow[]; today: { year: number; month: number }; emailHistory: EmailEvent[] }>(`/api/clients/${params.id}`).then(d => {
+    apiGet<{ client: Client; history: HistoryRow[]; today: { year: number; month: number }; emailHistory: EmailEvent[]; reliability: Reliability }>(`/api/clients/${params.id}`).then(d => {
       setClient(d.client)
       setHistory(d.history)
       setToday(d.today)
       setEmailHistory(d.emailHistory)
+      setReliability(d.reliability)
       setEditPhone(d.client.phone || '')
       setEditEmail(d.client.email || '')
       setEditCycleStart(d.client.cycle_start_date)
@@ -121,6 +124,13 @@ export default function ClientDetailPage() {
             <span className="chip">עובדת אחראית: {client.assigned_employee?.full_name || 'ללא שיוך'}</span>
             {client.phone && <span className="chip" style={{ direction: 'ltr' }}>{client.phone}</span>}
             {client.email && <span className="chip" style={{ direction: 'ltr' }}>{client.email}</span>}
+            {reliability && reliability.totalMonths > 0 && (
+              <span className={`badge ${reliability.lateMonths === 0 ? 'b-green' : reliability.lateMonths <= 2 ? 'b-amber' : 'b-red'}`}>
+                {reliability.lateMonths === 0
+                  ? `✓ תמיד בזמן (${reliability.totalMonths} חודשים אחרונים)`
+                  : `איחר/ה ב-${reliability.lateMonths} מתוך ${reliability.totalMonths} החודשים האחרונים`}
+              </span>
+            )}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

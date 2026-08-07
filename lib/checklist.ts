@@ -120,3 +120,24 @@ export function computeClientStatus(opts: {
   return { relevant: true, complete: status.complete, checkedCount: status.checkedCount, total: status.total, isBehind, daysBehind }
 }
 
+export interface ReliabilityStats {
+  totalMonths: number
+  lateMonths: number
+}
+
+// "Late" means the month ever needed an automatic nag (a 'sent' reminder_events row) — not
+// just whether it eventually got done. That's what actually cost the bookkeeper effort, so
+// it's a better reliability signal than "complete or not" for a month that's long since closed.
+// pastMonthsNewestFirst excludes the current in-progress month (only closed months count).
+export function computeReliability(
+  pastMonthsNewestFirst: YearMonth[],
+  sentMonths: Set<string>,
+  windowSize = 6
+): ReliabilityStats {
+  const window = pastMonthsNewestFirst.slice(0, windowSize)
+  return {
+    totalMonths: window.length,
+    lateMonths: window.filter(m => sentMonths.has(`${m.year}-${m.month}`)).length,
+  }
+}
+

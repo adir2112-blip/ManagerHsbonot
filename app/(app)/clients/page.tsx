@@ -24,7 +24,10 @@ export default async function ClientsPage() {
     <div>
       <div className="page-header">
         <div className="page-title">לקוחות</div>
-        <Link href="/clients/new" className="btn btn-primary">+ לקוח חדש</Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a href="/api/clients/export" className="btn btn-sm">📊 ייצוא לאקסל</a>
+          <Link href="/clients/new" className="btn btn-primary">+ לקוח חדש</Link>
+        </div>
       </div>
       <div className="card">
         <div className="table-wrap">

@@ -5,6 +5,7 @@ import {
   listRelevantMonths,
   applicableFormTypes,
   computeMonthStatus,
+  computeReliability,
 } from '../lib/checklist'
 
 test('monthly client is relevant every month from start date onward', () => {
@@ -60,4 +61,23 @@ test('computeMonthStatus is incomplete until every applicable type is checked', 
   assert.equal(status.total, 2)
   assert.equal(status.checkedCount, 1)
   assert.equal(status.complete, false)
+})
+
+test('computeReliability counts only months that needed a nag, within the trailing window', () => {
+  const pastMonthsNewestFirst = [
+    { year: 2025, month: 7 }, { year: 2025, month: 6 }, { year: 2025, month: 5 },
+    { year: 2025, month: 4 }, { year: 2025, month: 3 }, { year: 2025, month: 2 },
+    { year: 2025, month: 1 }, // 7 months of history — window of 6 should drop this oldest one
+  ]
+  const sentMonths = new Set(['2025-7', '2025-5', '2025-1'])
+  const result = computeReliability(pastMonthsNewestFirst, sentMonths, 6)
+  assert.equal(result.totalMonths, 6)
+  assert.equal(result.lateMonths, 2) // July and May are within the window; January is dropped
+})
+
+test('computeReliability with a perfect record reports zero late months', () => {
+  const pastMonthsNewestFirst = [{ year: 2025, month: 3 }, { year: 2025, month: 2 }]
+  const result = computeReliability(pastMonthsNewestFirst, new Set(), 6)
+  assert.equal(result.totalMonths, 2)
+  assert.equal(result.lateMonths, 0)
 })
