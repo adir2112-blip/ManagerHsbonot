@@ -28,17 +28,11 @@ function textToRtlHtml(text: string): string {
     return `<p style="margin:0 0 16px;">${escapeHtml(p).replace(/\n/g, '<br>')}</p>`
   }).join('')
 
-  return `
-<div dir="rtl" style="font-family:Arial,Heebo,sans-serif;background:#f1f3f8;padding:24px;">
-  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,0.08);">
-    <div style="background:linear-gradient(135deg,#10b981,#059669);padding:18px 24px;color:#ffffff;font-size:16px;font-weight:700;">
-      📊 הנהלת החשבונות
-    </div>
-    <div style="padding:24px;text-align:right;font-size:14px;line-height:1.7;color:#111827;">
-      ${blocks}
-    </div>
-  </div>
-</div>`
+  // Kept on one line deliberately — Gmail auto-"clips" messages past a total size threshold
+  // and shows a "[Message clipped] View entire message" link truncating the content; Hebrew
+  // text quoted-printable-encoded (nodemailer's default) balloons a lot, and pretty-printed
+  // multi-line HTML with indentation adds avoidable bytes on top of that.
+  return `<div dir="rtl" style="font-family:Arial,Heebo,sans-serif;background:#f1f3f8;padding:24px;"><div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(15,23,42,0.08);"><div style="background:linear-gradient(135deg,#10b981,#059669);padding:18px 24px;color:#ffffff;font-size:16px;font-weight:700;">📊 הנהלת החשבונות</div><div style="padding:24px;text-align:right;font-size:14px;line-height:1.7;color:#111827;">${blocks}</div></div></div>`
 }
 
 async function sendViaResend(opts: { to: string; subject: string; body: string }): Promise<SendResult> {
@@ -78,6 +72,11 @@ async function sendViaGmail(opts: { to: string; subject: string; body: string })
       subject: opts.subject,
       text: opts.body,
       html: textToRtlHtml(opts.body),
+      // Default quoted-printable encoding represents every non-ASCII byte as "=XX" (3 chars
+      // per byte) — Hebrew text can balloon 3x+ in encoded size, which is what was tripping
+      // Gmail's clip-long-messages threshold on a message that's actually tiny. Base64 doesn't
+      // have that multiplier for non-Latin text.
+      encoding: 'base64',
     })
     return { status: 'sent' }
   } catch (err: any) {
