@@ -2,7 +2,14 @@
 import { useEffect, useState } from 'react'
 import { apiGet, apiPatch, apiPost, apiDelete } from '@/lib/client'
 
-interface Settings { reminder_day_of_month: number; reminder_email_subject: string; reminder_email_body: string }
+interface Settings {
+  reminder_day_of_month: number
+  reminder_email_subject: string
+  reminder_email_body: string
+  last_reminder_run_at: string | null
+  last_reminder_run_status: string | null
+  last_reminder_run_summary: string | null
+}
 interface Stage { id: string; days_overdue: number }
 
 export default function SettingsAdminPage() {
@@ -55,6 +62,28 @@ export default function SettingsAdminPage() {
   return (
     <div>
       <div className="page-header"><div className="page-title">הגדרות תזכורות</div></div>
+
+      <div className="card card-pad" style={{ maxWidth: 480, marginBottom: 20 }}>
+        <div className="card-title" style={{ marginBottom: 8 }}>סטטוס תזכורות אוטומטיות (Cron)</div>
+        {settings.last_reminder_run_at ? (
+          <>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>
+              ריצה אחרונה: {new Date(settings.last_reminder_run_at).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })}{' '}
+              {settings.last_reminder_run_status === 'ok'
+                ? <span className="badge b-green">תקין</span>
+                : <span className="badge b-red">שגיאה</span>}
+            </div>
+            {settings.last_reminder_run_summary && (
+              <div className="td-muted" style={{ fontSize: 13 }}>{settings.last_reminder_run_summary}</div>
+            )}
+            {Date.now() - new Date(settings.last_reminder_run_at).getTime() > 26 * 60 * 60 * 1000 && (
+              <div className="badge b-red" style={{ marginTop: 8 }}>לא רצה ביממה האחרונה — כדאי לבדוק</div>
+            )}
+          </>
+        ) : (
+          <div className="td-muted" style={{ fontSize: 13 }}>עדיין לא רצה אף פעם</div>
+        )}
+      </div>
 
       <div className="card card-pad" style={{ maxWidth: 480, marginBottom: 20 }}>
         <div className="card-title" style={{ marginBottom: 12 }}>יום חריגה בדשבורד</div>

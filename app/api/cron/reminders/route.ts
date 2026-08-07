@@ -24,6 +24,34 @@ async function handle(req: Request) {
   }
 
   const admin = createAdminClient()
+
+  try {
+    const result = await run(admin)
+    await admin.from('app_settings').update({
+      last_reminder_run_at: new Date().toISOString(),
+      last_reminder_run_status: 'ok',
+      last_reminder_run_summary: `נשלחו ${result.sent}, כשלו ${result.failed}, דולגו ${result.skipped}, לא הגיע התור ${result.notDue}`,
+    }).eq('id', true)
+    return NextResponse.json({ ok: true, ...result })
+  } catch (err: any) {
+    const message = err?.message || 'unknown error'
+    await admin.from('app_settings').update({
+      last_reminder_run_at: new Date().toISOString(),
+      last_reminder_run_status: 'error',
+      last_reminder_run_summary: message,
+    }).eq('id', true)
+    // Best-effort alert to the office inbox — reuses the same sender the reminder emails use
+    // (Resend or Gmail, whichever is configured), so no new email infra is needed just for this.
+    await sendReminderEmail({
+      to: process.env.ALERT_EMAIL || process.env.GMAIL_USER || '',
+      subject: 'תקלה בשליחת תזכורות אוטומטיות',
+      body: `ריצת התזכורות היומית נכשלה עם השגיאה הבאה:\n\n${message}\n\nיש לבדוק את המערכת.`,
+    }).catch(() => {}) // never let an alert-send failure mask the original error
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
+
+async function run(admin: ReturnType<typeof createAdminClient>) {
   const today = israelToday()
 
   const [{ data: clients }, { data: formTypes }, { data: settings }, { data: stages }] = await Promise.all([
@@ -91,7 +119,7 @@ async function handle(req: Request) {
     else skipped++
   }
 
-  return NextResponse.json({ ok: true, sent, skipped, failed, notDue })
+  return { sent, skipped, failed, notDue }
 }
 
 export const GET = handle
