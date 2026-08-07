@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/api/auth', '/api/cron']
+const PUBLIC_PATHS = ['/login', '/api/auth', '/api/cron', '/manifest.json']
 
 export async function middleware(request: NextRequest) {
   // Headers we're about to trust downstream — always strip any client-supplied values first
