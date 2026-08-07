@@ -4,6 +4,15 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'מעקב טפסים חודשי',
   description: 'מערכת מעקב טפסים חודשיים למשרד הנהלת חשבונות',
+  manifest: '/manifest.json',
+  icons: { apple: '/icons/icon-180.png' },
+  // "Add to Home Screen" on iOS ignores manifest.json entirely — these are what actually make
+  // it open full-screen (no Safari chrome) instead of just bookmarking the URL.
+  appleWebApp: {
+    capable: true,
+    title: 'מעקב טפסים',
+    statusBarStyle: 'black-translucent',
+  },
 }
 
 // Without this, mobile browsers render the page at a virtual ~980px "desktop" viewport and
@@ -12,6 +21,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#059669',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

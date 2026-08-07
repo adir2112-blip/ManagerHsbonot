@@ -23,15 +23,18 @@ export default function DashboardContent({ rows, reminderDay, today, currentUser
 
   const visibleRows = scope === 'mine' ? rows.filter(r => r.client.assigned_employee?.id === currentUserId) : rows
 
-  const byEmployee = new Map<string, { name: string; behind: number; total: number }>()
+  const byEmployee = new Map<string, { name: string; behind: number; complete: number; total: number }>()
   for (const r of rows) {
     const key = r.client.assigned_employee?.id || 'unassigned'
     const name = r.client.assigned_employee?.full_name || 'ללא שיוך'
-    const entry = byEmployee.get(key) || { name, behind: 0, total: 0 }
+    const entry = byEmployee.get(key) || { name, behind: 0, complete: 0, total: 0 }
     entry.total++
     if (r.isBehind) entry.behind++
+    if (r.complete) entry.complete++
     byEmployee.set(key, entry)
   }
+  // Most-loaded first — the point of this table is to spot at a glance who needs help.
+  const byEmployeeSorted = [...byEmployee.values()].sort((a, b) => b.behind - a.behind)
 
   return (
     <div>
@@ -44,12 +47,12 @@ export default function DashboardContent({ rows, reminderDay, today, currentUser
         <div className="card" style={{ marginBottom: 20 }}>
           <div className="card-header"><div className="card-title">לפי עובדת אחראית</div></div>
           <div className="card-pad">
-            {[...byEmployee.values()].map(e => (
+            {byEmployeeSorted.map(e => (
               <div key={e.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
                 <span>{e.name}</span>
                 <span>
                   {e.behind > 0 ? <span className="badge b-red">{e.behind} בפיגור</span> : <span className="badge b-green">הכל בסדר</span>}
-                  <span style={{ color: 'var(--text3)', fontSize: 11, marginRight: 8 }}>מתוך {e.total} לקוחות</span>
+                  <span style={{ color: 'var(--text3)', fontSize: 11, marginRight: 8 }}>{e.complete}/{e.total} הושלמו</span>
                 </span>
               </div>
             ))}
