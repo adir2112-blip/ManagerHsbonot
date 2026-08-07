@@ -100,7 +100,9 @@ async function run(admin: ReturnType<typeof createAdminClient>) {
 
     if (!nextStage) { notDue++; continue }
 
-    const { subject, body } = renderClientReminderEmail(template, client.name, missing.map((f: any) => f.name))
+    // The client only ever sees a generic line, never the office's internal form-type
+    // breakdown — regardless of which/how many internal types are actually missing.
+    const { subject, body } = renderClientReminderEmail(template, client.name, ['ניירת למע"מ'])
     const result = await sendReminderEmail({ to: client.email, subject, body })
 
     await admin.from('reminder_events').insert({
