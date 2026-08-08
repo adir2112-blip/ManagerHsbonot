@@ -27,6 +27,17 @@ function fmtSentAt(iso: string | null): string {
   return `${date} ${time}`
 }
 
+// whatsapp:// (not wa.me/https) — the custom protocol the WhatsApp Desktop app registers with
+// the OS, so clicking this hands off straight to the already-running app instead of opening a
+// new browser tab pointed at web.whatsapp.com. Only works if WhatsApp Desktop is installed;
+// there's no reliable feature-detection for a custom protocol handler from a webpage, so this
+// is a plain link with no JS fallback — if it's not installed, the OS simply does nothing.
+function whatsappDesktopLink(phone: string, message: string): string {
+  const digits = phone.replace(/\D/g, '').replace(/^0/, '')
+  const withCountryCode = digits.startsWith('972') ? digits : `972${digits}`
+  return `whatsapp://send?phone=${withCountryCode}&text=${encodeURIComponent(message)}`
+}
+
 // Hebrew has a distinct dual form for "two" (שני דיווחים vs 3+ דיווחים), so 1/2/3+ each get
 // their own phrasing rather than a generic "X reports" that would read oddly for 1–2.
 function remainingText(remaining: number, complete: boolean): string {
@@ -138,6 +149,14 @@ export default function ClientDetailPage() {
           <button className="btn btn-sm" onClick={handleSendReminder} disabled={sendingReminder || !client.email} title={!client.email ? 'יש להגדיר קודם אימייל ללקוח' : undefined}>
             {sendingReminder ? 'שולח…' : '📧 שלח מייל תזכורת'}
           </button>
+          {client.phone && (
+            <a
+              className="btn btn-sm"
+              href={whatsappDesktopLink(client.phone, `שלום ${client.name}, תזכורת ידידותית ממשרד הנהלת חשבונות: נשארה עוד ניירת למע"מ להעביר אלינו. תודה!`)}
+            >
+              💬 שלח בוואטסאפ
+            </a>
+          )}
           <button className="btn btn-sm" onClick={() => setShowFormTypes(true)}>📋 טפסים ללקוח</button>
           <button className="btn btn-sm" onClick={() => setEditing(e => !e)}>{editing ? 'ביטול' : 'עריכה'}</button>
           <button className="btn btn-sm btn-danger" onClick={() => setShowDeleteConfirm(true)}>🗑 מחיקת לקוח</button>
