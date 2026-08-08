@@ -29,7 +29,8 @@ function fmtSentAt(iso: string | null): string {
 
 // Hebrew has a distinct dual form for "two" (שני דיווחים vs 3+ דיווחים), so 1/2/3+ each get
 // their own phrasing rather than a generic "X reports" that would read oddly for 1–2.
-function remainingText(remaining: number): string {
+function remainingText(remaining: number, complete: boolean): string {
+  if (remaining === 0 && !complete) return '⏳ כל הטפסים הוגשו, אבל יש עדיין "המשך טיפול" פתוח החודש'
   if (remaining === 0) return '🎉 כל הטפסים הוגשו החודש ללקוח הזה!'
   if (remaining === 1) return '💪 נשאר עוד דיווח אחד לטיפול סופי בלקוח החודש'
   if (remaining === 2) return '💪 נשארו עוד שני דיווחים לטיפול סופי בלקוח החודש'
@@ -203,16 +204,16 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      {remaining !== null && (
+      {remaining !== null && currentMonthRow && (
         <div
           className="card card-pad"
           style={{
             marginTop: 20, textAlign: 'center', fontSize: 20, fontWeight: 800,
-            color: remaining === 0 ? 'var(--green)' : 'var(--amber)',
-            background: remaining === 0 ? 'var(--green-lt)' : 'var(--amber-lt)',
+            color: currentMonthRow.complete ? 'var(--green)' : 'var(--amber)',
+            background: currentMonthRow.complete ? 'var(--green-lt)' : 'var(--amber-lt)',
           }}
         >
-          {remainingText(remaining)}
+          {remainingText(remaining, currentMonthRow.complete)}
         </div>
       )}
 

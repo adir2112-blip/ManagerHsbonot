@@ -53,6 +53,7 @@ export interface ChecklistItem {
   year: number
   month: number
   checked: boolean
+  continue_treatment?: boolean
 }
 
 // A form-type counts toward a given month only if it's currently active AND was already
@@ -69,12 +70,18 @@ export interface MonthStatus {
   complete: boolean
 }
 
+// "המשך טיפול" (continue_treatment) is an internal per-item override, separate from `checked`:
+// it means "the client's paperwork is in, but our own handling of it isn't actually closed yet"
+// (e.g. received but not yet filed with the tax authority). A month with it set on any item
+// never reads as complete, no matter how many boxes are checked, until someone clears it.
 export function computeMonthStatus(formTypes: FormType[], items: ChecklistItem[], year: number, month: number): MonthStatus {
   const applicable = applicableFormTypes(formTypes, year, month)
   const applicableIds = new Set(applicable.map(f => f.id))
-  const checkedCount = items.filter(i => i.year === year && i.month === month && i.checked && applicableIds.has(i.form_type_id)).length
+  const monthItems = items.filter(i => i.year === year && i.month === month && applicableIds.has(i.form_type_id))
+  const checkedCount = monthItems.filter(i => i.checked).length
   const total = applicable.length
-  return { total, checkedCount, complete: total > 0 && checkedCount === total }
+  const hasOpenFollowUp = monthItems.some(i => i.continue_treatment)
+  return { total, checkedCount, complete: total > 0 && checkedCount === total && !hasOpenFollowUp }
 }
 
 // Used by both the cron and the manual "שלח מייל תזכורת" button to name exactly which forms

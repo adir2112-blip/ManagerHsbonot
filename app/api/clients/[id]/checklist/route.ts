@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const { ctx } = guard
 
   const body = await req.json().catch(() => ({}))
-  const { form_type_id, year, month, checked, note } = body || {}
+  const { form_type_id, year, month, checked, note, continue_treatment } = body || {}
   if (!form_type_id || !year || !month) return NextResponse.json({ error: 'חסרים שדות' }, { status: 400 })
 
   const { data: existing } = await ctx.supabase
@@ -53,6 +53,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     patch.checked_at = new Date().toISOString()
   }
   if (note !== undefined) patch.note = note
+  if (continue_treatment !== undefined) patch.continue_treatment = continue_treatment
 
   if (existing) {
     const { data, error } = await ctx.supabase.from('checklist_items').update(patch).eq('id', existing.id).select().single()
@@ -62,7 +63,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const { data, error } = await ctx.supabase
     .from('checklist_items')
-    .insert({ client_id: params.id, form_type_id, year, month, checked: !!checked, note: note ?? null, ...patch })
+    .insert({ client_id: params.id, form_type_id, year, month, checked: !!checked, note: note ?? null, continue_treatment: !!continue_treatment, ...patch })
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

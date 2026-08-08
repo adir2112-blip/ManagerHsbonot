@@ -75,6 +75,15 @@ test('computeReliability counts only months that needed a nag, within the traili
   assert.equal(result.lateMonths, 2) // July and May are within the window; January is dropped
 })
 
+test('computeMonthStatus stays incomplete while continue_treatment is set, even fully checked', () => {
+  const types = [{ id: 'a', active: true, effective_from: '2025-01-01T00:00:00Z' }]
+  const items = [{ form_type_id: 'a', year: 2025, month: 7, checked: true, continue_treatment: true }]
+  const status = computeMonthStatus(types, items, 2025, 7)
+  assert.equal(status.checkedCount, 1)
+  assert.equal(status.total, 1)
+  assert.equal(status.complete, false)
+})
+
 test('computeReliability with a perfect record reports zero late months', () => {
   const pastMonthsNewestFirst = [{ year: 2025, month: 3 }, { year: 2025, month: 2 }]
   const result = computeReliability(pastMonthsNewestFirst, new Set(), 6)

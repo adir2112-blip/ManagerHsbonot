@@ -8,6 +8,7 @@ interface FormType { id: string; name: string; sort_order: number }
 interface ChecklistItemRow {
   id: string; form_type_id: string; checked: boolean; note: string | null
   checked_at: string | null; checked_by_profile: { full_name: string } | null
+  continue_treatment: boolean
 }
 
 function formatWho(item: ChecklistItemRow): string | null {
@@ -45,13 +46,32 @@ export default function ChecklistMonth({ clientId, year, month, onChanged }: { c
     const existing = itemFor(formTypeId)
     setItems(existing
       ? items.map(i => i.form_type_id === formTypeId ? { ...i, checked } : i)
-      : [...items, { id: 'temp', form_type_id: formTypeId, checked, note: null, checked_at: null, checked_by_profile: null }])
+      : [...items, { id: 'temp', form_type_id: formTypeId, checked, note: null, checked_at: null, checked_by_profile: null, continue_treatment: false }])
     try {
       await apiPatch(`/api/clients/${clientId}/checklist`, { form_type_id: formTypeId, year, month, checked })
       await load(true) // silent refresh — picks up who/when without a loading flash
       onChanged?.()
     } catch {
       setItems(prev) // revert on failure
+    }
+  }
+
+  // "המשך טיפול" — an internal override, separate from `checked`: keeps this month reading as
+  // incomplete (client card, dashboard) until someone explicitly clears it, even if every box
+  // is checked. For paperwork that's in from the client but not actually closed out internally.
+  async function toggleContinueTreatment(formTypeId: string) {
+    const prev = items
+    const existing = itemFor(formTypeId)
+    const next = !existing?.continue_treatment
+    setItems(existing
+      ? items.map(i => i.form_type_id === formTypeId ? { ...i, continue_treatment: next } : i)
+      : [...items, { id: 'temp', form_type_id: formTypeId, checked: false, note: null, checked_at: null, checked_by_profile: null, continue_treatment: next }])
+    try {
+      await apiPatch(`/api/clients/${clientId}/checklist`, { form_type_id: formTypeId, year, month, continue_treatment: next })
+      await load(true)
+      onChanged?.()
+    } catch {
+      setItems(prev)
     }
   }
 
@@ -86,6 +106,14 @@ export default function ChecklistMonth({ clientId, year, month, onChanged }: { c
               onBlur={() => saveNote(ft.id)}
               style={{ flex: 1, fontSize: 12, padding: '5px 9px' }}
             />
+            <button
+              className="btn btn-xs"
+              onClick={() => toggleContinueTreatment(ft.id)}
+              title="גם אם כל הטפסים מסומנים, הלקוח יישאר בטיפול עד שהכפתור יבוטל"
+              style={item?.continue_treatment ? { background: 'var(--amber-lt)', color: 'var(--amber)', borderColor: 'rgba(180,83,9,0.3)' } : undefined}
+            >
+              {item?.continue_treatment ? '⏳ בהמשך טיפול' : 'המשך טיפול'}
+            </button>
             <ReminderBell clientId={clientId} formTypeId={ft.id} />
             {who && <div style={{ flex: '1 1 100%', fontSize: 11, color: 'var(--text3)', paddingRight: 28 }}>{who}</div>}
           </div>
