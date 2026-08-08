@@ -5,7 +5,9 @@ export const metadata: Metadata = {
   title: 'מעקב טפסים חודשי',
   description: 'מערכת מעקב טפסים חודשיים למשרד הנהלת חשבונות',
   manifest: '/manifest.json',
-  icons: { apple: '/icons/icon-180.png' },
+  // Explicitly setting `icons` here overrides Next.js's automatic detection of app/icon.svg —
+  // it has to be listed alongside `apple`, or the regular browser-tab favicon silently vanishes.
+  icons: { icon: '/icon.svg', apple: '/icons/icon-180.png' },
   // "Add to Home Screen" on iOS ignores manifest.json entirely — these are what actually make
   // it open full-screen (no Safari chrome) instead of just bookmarking the URL.
   appleWebApp: {
