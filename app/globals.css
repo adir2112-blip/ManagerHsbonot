@@ -48,13 +48,16 @@ html, body { height: 100%; font-family: 'Heebo', sans-serif; background: var(--b
 .topbar-row1 { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .topbar-brand { font-size: 16px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px; letter-spacing: 0.3px; flex-shrink: 0; }
 .brand-dot { width: 8px; height: 8px; border-radius: 50%; background: #93c5fd; box-shadow: 0 0 6px #93c5fd; }
-/* Wraps instead of hiding overflow behind an invisible scrollbar — every nav item stays visible. */
-.topbar-nav { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+/* Wraps instead of hiding overflow behind an invisible scrollbar — every nav item stays visible.
+   A hairline separator + its own top padding reads as a distinct bar instead of loose buttons
+   floating directly on row 1's gradient; space-between keeps "+ לקוח חדש" pinned to the far end
+   away from the link group instead of drifting into the middle of the row. */
+.topbar-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1); }
+.topbar-nav-links { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .nav-btn { flex-shrink: 0; padding: 6px 9px; border-radius: 8px; border: none; background: transparent; color: rgba(255,255,255,0.74); cursor: pointer; font-family: 'Heebo', sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.2px; transition: background 0.15s, color 0.15s; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; white-space: nowrap; }
 .nav-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
 .nav-btn.active { background: rgba(255,255,255,0.17); color: #fff; font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
 .topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.topbar-greeting { font-size: 13px; color: rgba(255,255,255,0.92); font-weight: 600; padding: 2px 2px 6px; display: flex; align-items: center; gap: 6px; }
 .user-pill { display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 7px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; }
 .avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg,#60a5fa,#a78bfa); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .user-name { font-size: 12px; font-weight: 600; color: #fff; }

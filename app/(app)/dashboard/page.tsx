@@ -2,6 +2,7 @@ import { getCurrentUser } from '@/lib/supabase/server'
 import { computeClientStatus, israelToday } from '@/lib/checklist'
 import { fetchClientFormTypeMap } from '@/lib/client-form-types'
 import DashboardContent from '@/components/DashboardContent'
+import Greeting from '@/components/Greeting'
 
 const HEBREW_MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
 
@@ -12,6 +13,7 @@ export default async function DashboardPage() {
   if (!ctx) return null
   const { supabase } = ctx
 
+  const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', ctx.user.id).single()
   const today = israelToday()
   const { data: clients } = await supabase.from('clients').select('*, assigned_employee:assigned_employee_id(id, full_name)').eq('active', true)
   const clientIds = (clients || []).map(c => c.id)
@@ -48,6 +50,7 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      {profile?.full_name && <Greeting fullName={profile.full_name} />}
       <div className="page-header">
         <div className="page-title">לוח בקרה — {HEBREW_MONTHS[today.month - 1]} {today.year}</div>
       </div>

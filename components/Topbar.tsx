@@ -34,22 +34,10 @@ function fmtDateTime(iso: string): string {
   return `${date} ${time}`
 }
 
-// Computed client-side only (useEffect, not inline in render) — the server that renders the
-// first HTML runs in a different timezone than the user's device, so doing this inline would
-// flash the wrong greeting for a moment and trip a hydration mismatch warning.
-function greetingFor(hour: number, firstName: string): { icon: string; text: string } {
-  if (hour >= 5 && hour < 12) return { icon: '☀️', text: `בוקר טוב, ${firstName}! מה שלומך היום?` }
-  if (hour >= 12 && hour < 17) return { icon: '🌤️', text: `צהריים טובים, ${firstName}! מה שלומך היום?` }
-  return { icon: '🌙', text: `ערב טוב, ${firstName}! מה שלומך היום?` }
-}
-
 export default function Topbar({ fullName, role }: TopbarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const initials = fullName.split(' ').map(p => p[0]).join('').slice(0, 2)
-  const firstName = fullName.split(' ')[0]
-  const [greeting, setGreeting] = useState<{ icon: string; text: string } | null>(null)
-  useEffect(() => { setGreeting(greetingFor(new Date().getHours(), firstName)) }, [firstName])
 
   const [searchQ, setSearchQ] = useState('')
   const [results, setResults] = useState<ClientResult[]>([])
@@ -151,12 +139,6 @@ export default function Topbar({ fullName, role }: TopbarProps) {
 
   return (
     <div className="topbar">
-      {greeting && (
-        <div className="topbar-greeting">
-          <span>{greeting.icon}</span>
-          <span>{greeting.text}</span>
-        </div>
-      )}
       <div className="topbar-row1">
         <div className="topbar-brand">
           <span className="brand-dot" />
@@ -212,16 +194,18 @@ export default function Topbar({ fullName, role }: TopbarProps) {
       </div>
 
       <div className="topbar-nav">
-        {NAV_ITEMS.map(item => (
-          <Link key={item.key} href={item.href} className={`nav-btn${pathname === item.href ? ' active' : ''}`}>
-            {item.label}
-          </Link>
-        ))}
-        {role === 'admin' && ADMIN_NAV_ITEMS.map(item => (
-          <Link key={item.key} href={item.href} className={`nav-btn${pathname === item.href ? ' active' : ''}`}>
-            {item.label}
-          </Link>
-        ))}
+        <div className="topbar-nav-links">
+          {NAV_ITEMS.map(item => (
+            <Link key={item.key} href={item.href} className={`nav-btn${pathname === item.href ? ' active' : ''}`}>
+              {item.label}
+            </Link>
+          ))}
+          {role === 'admin' && ADMIN_NAV_ITEMS.map(item => (
+            <Link key={item.key} href={item.href} className={`nav-btn${pathname === item.href ? ' active' : ''}`}>
+              {item.label}
+            </Link>
+          ))}
+        </div>
         <Link href="/clients/new" style={{
           display: 'inline-flex', alignItems: 'center', padding: '6px 14px', borderRadius: 8,
           background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff',
