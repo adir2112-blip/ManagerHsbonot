@@ -49,7 +49,12 @@ export default async function ClientsPage() {
                     <td>
                       {!relevantThisMonth && <span className="td-muted">—</span>}
                       {relevantThisMonth && status?.complete && <span className="badge b-green">✓ הושלם</span>}
-                      {relevantThisMonth && status && !status.complete && <span className="badge b-amber">{status.checkedCount}/{status.total}</span>}
+                      {relevantThisMonth && status && !status.complete && status.checkedCount === status.total && status.hasOpenFollowUp && (
+                        <span className="badge b-amber">✓ המשך טיפול</span>
+                      )}
+                      {relevantThisMonth && status && !status.complete && !(status.checkedCount === status.total && status.hasOpenFollowUp) && (
+                        <span className="badge b-amber">{status.checkedCount}/{status.total}</span>
+                      )}
                     </td>
                   </tr>
                 )

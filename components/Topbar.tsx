@@ -11,7 +11,7 @@ interface TopbarProps {
   role: 'admin' | 'bookkeeper'
 }
 
-interface ClientStatus { relevant: boolean; complete: boolean; checkedCount: number; total: number; isBehind: boolean; daysBehind: number }
+interface ClientStatus { relevant: boolean; complete: boolean; checkedCount: number; total: number; isBehind: boolean; daysBehind: number; hasOpenFollowUp: boolean }
 interface ClientResult { id: string; name: string; phone: string | null; status: ClientStatus }
 interface DueReminder {
   id: string; remind_at: string; note: string | null
@@ -23,6 +23,7 @@ function StatusBadge({ status }: { status: ClientStatus }) {
   if (!status.relevant) return <span style={{ fontSize: 11, color: '#9ca3af' }}>לא רלוונטי החודש</span>
   if (status.isBehind) return <span className="badge b-red">בחריגה {status.daysBehind} ימים</span>
   if (status.complete) return <span className="badge b-green">✓ הושלם</span>
+  if (status.checkedCount === status.total && status.hasOpenFollowUp) return <span className="badge b-amber">✓ המשך טיפול</span>
   return <span className="badge b-amber">{status.checkedCount}/{status.total}</span>
 }
 
@@ -33,10 +34,22 @@ function fmtDateTime(iso: string): string {
   return `${date} ${time}`
 }
 
+// Computed client-side only (useEffect, not inline in render) — the server that renders the
+// first HTML runs in a different timezone than the user's device, so doing this inline would
+// flash the wrong greeting for a moment and trip a hydration mismatch warning.
+function greetingFor(hour: number, firstName: string): { icon: string; text: string } {
+  if (hour >= 5 && hour < 12) return { icon: '☀️', text: `בוקר טוב, ${firstName}! מה שלומך היום?` }
+  if (hour >= 12 && hour < 17) return { icon: '🌤️', text: `צהריים טובים, ${firstName}! מה שלומך היום?` }
+  return { icon: '🌙', text: `ערב טוב, ${firstName}! מה שלומך היום?` }
+}
+
 export default function Topbar({ fullName, role }: TopbarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const initials = fullName.split(' ').map(p => p[0]).join('').slice(0, 2)
+  const firstName = fullName.split(' ')[0]
+  const [greeting, setGreeting] = useState<{ icon: string; text: string } | null>(null)
+  useEffect(() => { setGreeting(greetingFor(new Date().getHours(), firstName)) }, [firstName])
 
   const [searchQ, setSearchQ] = useState('')
   const [results, setResults] = useState<ClientResult[]>([])
@@ -138,29 +151,18 @@ export default function Topbar({ fullName, role }: TopbarProps) {
 
   return (
     <div className="topbar">
-      <div className="topbar-brand">
-        <span className="brand-dot" />
-        <span>מעקב טפסים חודשי</span>
-      </div>
-      <div className="topbar-nav">
-        {NAV_ITEMS.map(item => (
-          <Link key={item.key} href={item.href} className={`nav-btn${pathname === item.href ? ' active' : ''}`}>
-            {item.label}
-          </Link>
-        ))}
-        {role === 'admin' && ADMIN_NAV_ITEMS.map(item => (
-          <Link key={item.key} href={item.href} className={`nav-btn${pathname === item.href ? ' active' : ''}`}>
-            {item.label}
-          </Link>
-        ))}
-        <Link href="/clients/new" style={{
-          display: 'inline-flex', alignItems: 'center', padding: '6px 14px', borderRadius: 8,
-          background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff',
-          fontWeight: 700, fontSize: 13, textDecoration: 'none', fontFamily: 'Heebo,sans-serif',
-          boxShadow: '0 2px 8px rgba(5,150,105,0.35)', border: 'none', gap: 4, flexShrink: 0, whiteSpace: 'nowrap',
-        }}>＋ לקוח חדש</Link>
-      </div>
-      <div className="topbar-right">
+      {greeting && (
+        <div className="topbar-greeting">
+          <span>{greeting.icon}</span>
+          <span>{greeting.text}</span>
+        </div>
+      )}
+      <div className="topbar-row1">
+        <div className="topbar-brand">
+          <span className="brand-dot" />
+          <span>משרד הנהלת חשבונות</span>
+        </div>
+        <div className="topbar-right">
         <div ref={searchRef} style={{ position: 'relative' }}>
           <input
             value={searchQ}
@@ -206,6 +208,26 @@ export default function Topbar({ fullName, role }: TopbarProps) {
           </div>
         </div>
         <button className="btn btn-white btn-sm" onClick={handleLogout}>יציאה</button>
+        </div>
+      </div>
+
+      <div className="topbar-nav">
+        {NAV_ITEMS.map(item => (
+          <Link key={item.key} href={item.href} className={`nav-btn${pathname === item.href ? ' active' : ''}`}>
+            {item.label}
+          </Link>
+        ))}
+        {role === 'admin' && ADMIN_NAV_ITEMS.map(item => (
+          <Link key={item.key} href={item.href} className={`nav-btn${pathname === item.href ? ' active' : ''}`}>
+            {item.label}
+          </Link>
+        ))}
+        <Link href="/clients/new" style={{
+          display: 'inline-flex', alignItems: 'center', padding: '6px 14px', borderRadius: 8,
+          background: 'linear-gradient(135deg,#059669,#10b981)', color: '#fff',
+          fontWeight: 700, fontSize: 13, textDecoration: 'none', fontFamily: 'Heebo,sans-serif',
+          boxShadow: '0 2px 8px rgba(5,150,105,0.35)', border: 'none', gap: 4, flexShrink: 0, whiteSpace: 'nowrap',
+        }}>＋ לקוח חדש</Link>
       </div>
 
       {showReminderPopup && dueReminders.length > 0 && (

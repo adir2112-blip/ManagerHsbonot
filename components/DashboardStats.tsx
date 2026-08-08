@@ -12,6 +12,7 @@ interface Row {
   complete: boolean
   isBehind: boolean
   daysBehind: number
+  hasOpenFollowUp: boolean
   completedAt: string | null
 }
 
@@ -82,7 +83,12 @@ export default function DashboardStats({ rows, reminderDay, today }: { rows: Row
                 <tr key={r.client.id} className={filter === 'behind' ? 'overdue-row' : undefined}>
                   <td><Link href={`/clients/${r.client.id}`}>{r.client.name}</Link></td>
                   <td>{r.client.assigned_employee?.full_name || '—'}</td>
-                  <td>{r.checkedCount}/{r.total}</td>
+                  <td>
+                    {r.checkedCount}/{r.total}
+                    {r.checkedCount === r.total && r.hasOpenFollowUp && (
+                      <span className="badge b-amber" style={{ marginRight: 8 }}>✓ המשך טיפול</span>
+                    )}
+                  </td>
                   {filter === 'behind' && <td><span className="overdue-label">{r.daysBehind} ימים</span></td>}
                   {filter === 'complete' && <td className="td-mono">{formatCompletedAt(r.completedAt)}</td>}
                   <td><button className="btn btn-xs" onClick={() => setDetailClient(r.client)}>📋 אילו משימות</button></td>

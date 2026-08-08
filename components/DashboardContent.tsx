@@ -9,6 +9,7 @@ interface Row {
   complete: boolean
   isBehind: boolean
   daysBehind: number
+  hasOpenFollowUp: boolean
   completedAt: string | null
 }
 

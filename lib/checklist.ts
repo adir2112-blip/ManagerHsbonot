@@ -68,6 +68,7 @@ export interface MonthStatus {
   total: number
   checkedCount: number
   complete: boolean
+  hasOpenFollowUp: boolean
 }
 
 // "המשך טיפול" (continue_treatment) is an internal per-item override, separate from `checked`:
@@ -81,7 +82,7 @@ export function computeMonthStatus(formTypes: FormType[], items: ChecklistItem[]
   const checkedCount = monthItems.filter(i => i.checked).length
   const total = applicable.length
   const hasOpenFollowUp = monthItems.some(i => i.continue_treatment)
-  return { total, checkedCount, complete: total > 0 && checkedCount === total && !hasOpenFollowUp }
+  return { total, checkedCount, complete: total > 0 && checkedCount === total && !hasOpenFollowUp, hasOpenFollowUp }
 }
 
 // Used by both the cron and the manual "שלח מייל תזכורת" button to name exactly which forms
@@ -107,6 +108,7 @@ export interface ClientStatus {
   total: number
   isBehind: boolean
   daysBehind: number
+  hasOpenFollowUp: boolean
 }
 
 // Shared by the dashboard (per-client rows) and the topbar client search (so a search result
@@ -120,11 +122,11 @@ export function computeClientStatus(opts: {
   reminderDayOfMonth: number
 }): ClientStatus {
   const relevant = isMonthRelevant(opts.cycle, opts.cycleStartDate, opts.today.year, opts.today.month)
-  if (!relevant) return { relevant: false, complete: false, checkedCount: 0, total: 0, isBehind: false, daysBehind: 0 }
+  if (!relevant) return { relevant: false, complete: false, checkedCount: 0, total: 0, isBehind: false, daysBehind: 0, hasOpenFollowUp: false }
   const status = computeMonthStatus(opts.formTypes, opts.items, opts.today.year, opts.today.month)
   const isBehind = !status.complete && opts.today.day >= opts.reminderDayOfMonth
   const daysBehind = isBehind ? opts.today.day - opts.reminderDayOfMonth : 0
-  return { relevant: true, complete: status.complete, checkedCount: status.checkedCount, total: status.total, isBehind, daysBehind }
+  return { relevant: true, complete: status.complete, checkedCount: status.checkedCount, total: status.total, isBehind, daysBehind, hasOpenFollowUp: status.hasOpenFollowUp }
 }
 
 export interface ReliabilityStats {
