@@ -29,7 +29,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="he" dir="rtl">
-      <body>{children}</body>
+      <body>
+        {children}
+        <footer style={{ textAlign: 'center', padding: '20px 12px', fontSize: 12, color: 'var(--text3)' }}>
+          כל הזכויות שמורות ל-A.L ייעוץ ותכנון מערכות
+        </footer>
+      </body>
     </html>
   )
 }
