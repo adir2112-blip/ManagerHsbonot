@@ -27,15 +27,16 @@ function fmtSentAt(iso: string | null): string {
   return `${date} ${time}`
 }
 
-// whatsapp:// (not wa.me/https) — the custom protocol the WhatsApp Desktop app registers with
-// the OS, so clicking this hands off straight to the already-running app instead of opening a
-// new browser tab pointed at web.whatsapp.com. Only works if WhatsApp Desktop is installed;
-// there's no reliable feature-detection for a custom protocol handler from a webpage, so this
-// is a plain link with no JS fallback — if it's not installed, the OS simply does nothing.
-function whatsappDesktopLink(phone: string, message: string): string {
+// No browser lets a page target or reuse a DIFFERENT already-open tab of another origin — that
+// would let any site hijack a user's other tabs, so it's blocked at the browser level everywhere,
+// not something we can build around. The closest real equivalent: navigate the CURRENT tab (no
+// target="_blank", so no new tab opens) to WhatsApp Web. Login is shared across the whole
+// browser per-origin, not per-tab, so this lands already signed in — no QR scan — even though
+// it's technically a fresh WhatsApp Web instance in this tab rather than the user's other one.
+function whatsappWebLink(phone: string, message: string): string {
   const digits = phone.replace(/\D/g, '').replace(/^0/, '')
   const withCountryCode = digits.startsWith('972') ? digits : `972${digits}`
-  return `whatsapp://send?phone=${withCountryCode}&text=${encodeURIComponent(message)}`
+  return `https://web.whatsapp.com/send?phone=${withCountryCode}&text=${encodeURIComponent(message)}`
 }
 
 // Hebrew has a distinct dual form for "two" (שני דיווחים vs 3+ דיווחים), so 1/2/3+ each get
@@ -152,7 +153,7 @@ export default function ClientDetailPage() {
           {client.phone && (
             <a
               className="btn btn-sm"
-              href={whatsappDesktopLink(client.phone, `שלום ${client.name}, תזכורת ידידותית ממשרד הנהלת חשבונות: נשארה עוד ניירת למע"מ להעביר אלינו. תודה!`)}
+              href={whatsappWebLink(client.phone, `שלום ${client.name}, תזכורת ידידותית ממשרד הנהלת חשבונות: נשארה עוד ניירת למע"מ להעביר אלינו. תודה!`)}
             >
               💬 שלח בוואטסאפ
             </a>
