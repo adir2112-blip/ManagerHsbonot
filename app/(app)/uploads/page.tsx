@@ -235,7 +235,7 @@ function FilesModal({ row, categories, focusCategory, periodLabel, onClose }: {
                   {s.kind === 'file' ? (
                     <>
                       <span>{s.mime_type?.startsWith('image/') ? '🖼️' : s.mime_type === 'application/pdf' ? '📕' : '📄'}</span>
-                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.file_name}</span>
+                      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', direction: 'ltr', textAlign: 'right', unicodeBidi: 'isolate' }}>{s.file_name}</span>
                       <span className="td-muted">{formatBytes(s.file_size)} · {fmtFull(s.created_at)}</span>
                       <a className="btn btn-xs" href={`/api/uploads/file/${s.id}`} target="_blank" rel="noreferrer">👁 צפייה</a>
                       <a className="btn btn-xs" href={`/api/uploads/file/${s.id}?download=1`}>⬇ הורדה</a>
