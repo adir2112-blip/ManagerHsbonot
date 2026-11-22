@@ -65,7 +65,7 @@ export async function POST(req: Request) {
   const { ctx } = guard
 
   const body = await req.json().catch(() => ({}))
-  const { name, phone, email, cycle, cycle_start_date, assigned_employee_id, notes } = body || {}
+  const { name, phone, email, cycle, cycle_start_date, assigned_employee_id, notes, id_number } = body || {}
 
   if (!name?.trim()) return NextResponse.json({ error: 'חסר שם לקוח' }, { status: 400 })
   if (cycle !== 'monthly' && cycle !== 'bimonthly') return NextResponse.json({ error: 'מחזוריות לא תקינה' }, { status: 400 })
@@ -77,6 +77,7 @@ export async function POST(req: Request) {
       name: name.trim(),
       phone: phone?.trim() || null,
       email: email?.trim() || null,
+      id_number: String(id_number || '').replace(/\D/g, '') || null,
       cycle,
       cycle_start_date,
       assigned_employee_id: assigned_employee_id || null,
@@ -93,6 +94,12 @@ export async function POST(req: Request) {
   const { data: activeTypes } = await ctx.supabase.from('form_types').select('id').eq('active', true)
   if (activeTypes && activeTypes.length > 0) {
     await ctx.supabase.from('client_form_types').insert(activeTypes.map(ft => ({ client_id: data.id, form_type_id: ft.id })))
+  }
+
+  // Default portal categories: every active file-upload category (office can adjust per client).
+  const { data: uploadCats } = await ctx.supabase.from('upload_categories').select('id').eq('active', true).eq('kind', 'upload')
+  if (uploadCats && uploadCats.length > 0) {
+    await ctx.supabase.from('client_upload_categories').insert(uploadCats.map(c => ({ client_id: data.id, category_id: c.id })))
   }
 
   return NextResponse.json({ client: data })

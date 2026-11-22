@@ -3,6 +3,7 @@
 export const NAV_ITEMS = [
   { key: 'dashboard', href: '/dashboard', label: '🏠 ראשי' },
   { key: 'today', href: '/today', label: '☀️ היום שלי' },
+  { key: 'uploads', href: '/uploads', label: '📤 מסמכים מלקוחות' },
   { key: 'clients', href: '/clients', label: '👥 לקוחות' },
   { key: 'forms-sweep', href: '/forms-sweep', label: '🧾 בדיקה לפי טופס' },
   { key: 'reminders', href: '/reminders', label: '🔔 תזכורות' },
@@ -10,6 +11,7 @@ export const NAV_ITEMS = [
 
 export const ADMIN_NAV_ITEMS = [
   { key: 'admin-form-types', href: '/admin/form-types', label: '📋 קטלוג טפסים' },
+  { key: 'admin-upload-categories', href: '/admin/upload-categories', label: '📤 קטגוריות מסמכים' },
   { key: 'admin-users', href: '/admin/users', label: '🧑‍💼 משתמשים' },
   { key: 'admin-settings', href: '/admin/settings', label: '⚙ הגדרות' },
 ] as const

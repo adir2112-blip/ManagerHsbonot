@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { apiGet, apiPatch, apiDelete, apiPost } from '@/lib/client'
 import ChecklistMonth from '@/components/ChecklistMonth'
 import ClientFormTypesPanel from '@/components/ClientFormTypesPanel'
+import ClientPortalPanel from '@/components/ClientPortalPanel'
 
 const HEBREW_MONTHS = ['ינואר', 'פברואר', 'מרץ', 'אפריל', 'מאי', 'יוני', 'יולי', 'אוגוסט', 'ספטמבר', 'אוקטובר', 'נובמבר', 'דצמבר']
 
@@ -63,6 +64,7 @@ export default function ClientDetailPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [showFormTypes, setShowFormTypes] = useState(false)
+  const [showPortal, setShowPortal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [editPhone, setEditPhone] = useState('')
@@ -158,6 +160,7 @@ export default function ClientDetailPage() {
               💬 שלח בוואטסאפ
             </a>
           )}
+          <button className="btn btn-sm btn-success" onClick={() => setShowPortal(true)}>📤 פורטל מסמכים</button>
           <button className="btn btn-sm" onClick={() => setShowFormTypes(true)}>📋 טפסים ללקוח</button>
           <button className="btn btn-sm" onClick={() => setEditing(e => !e)}>{editing ? 'ביטול' : 'עריכה'}</button>
           <button className="btn btn-sm btn-danger" onClick={() => setShowDeleteConfirm(true)}>🗑 מחיקת לקוח</button>
@@ -263,6 +266,8 @@ export default function ClientDetailPage() {
       {showFormTypes && (
         <ClientFormTypesPanel clientId={client.id} onClose={() => setShowFormTypes(false)} onChanged={load} />
       )}
+
+      {showPortal && <ClientPortalPanel clientId={client.id} onClose={() => setShowPortal(false)} />}
 
       {showDeleteConfirm && (
         <div className="modal-overlay" onClick={() => !deleting && setShowDeleteConfirm(false)}>

@@ -11,6 +11,7 @@ export default function NewClientPage() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [idNumber, setIdNumber] = useState('')
   const [cycle, setCycle] = useState<'monthly' | 'bimonthly'>('monthly')
   const [cycleStartDate, setCycleStartDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [assignedEmployeeId, setAssignedEmployeeId] = useState('')
@@ -28,7 +29,7 @@ export default function NewClientPage() {
     setSaving(true)
     try {
       const { client } = await apiPost<{ client: { id: string } }>('/api/clients', {
-        name, phone: phone || null, email: email || null, cycle, cycle_start_date: cycleStartDate,
+        name, phone: phone || null, email: email || null, id_number: idNumber || null, cycle, cycle_start_date: cycleStartDate,
         assigned_employee_id: assignedEmployeeId || null,
         notes: notes || null,
       })
@@ -53,6 +54,10 @@ export default function NewClientPage() {
             <label className="form-label">טלפון</label>
             <input className="form-input" type="tel" value={phone} onChange={e => setPhone(e.target.value)} style={{ direction: 'ltr', textAlign: 'right' }} />
           </div>
+        </div>
+        <div className="form-group">
+          <label className="form-label">מספר תעודת זהות / ח.פ. (לכניסה לפורטל המסמכים)</label>
+          <input className="form-input" inputMode="numeric" value={idNumber} onChange={e => setIdNumber(e.target.value)} style={{ direction: 'ltr', textAlign: 'right' }} />
         </div>
         <div className="form-row-3">
           <div className="form-group">
